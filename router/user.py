@@ -21,7 +21,7 @@ user_router = APIRouter(
 
 
 @user_router.post("/", response_model=UserInDB, status_code=status.HTTP_201_CREATED)
-async def create_user(
+async def api_create_user(
     user: UserCreate,
     db: AsyncSession = Depends(get_db),
     current_user: UserInDB=Depends(get_admin_user)
@@ -34,7 +34,7 @@ async def create_user(
 
 
 @user_router.get("/{user_id}", response_model=UserInDB, status_code=status.HTTP_200_OK, dependencies=[Depends(check_password_changed)])
-async def get_user(
+async def api_get_user(
     user_id: int,
     db: AsyncSession = Depends(get_db),
     current_user: UserInDB=Depends(get_admin_user)
@@ -47,7 +47,7 @@ async def get_user(
 
 
 @user_router.get("/",response_model=UserPagination, status_code=status.HTTP_200_OK, dependencies=[Depends(check_password_changed)])
-async def get_all_users(
+async def api_get_all_users(
     page: int = 1,
     page_size: int = 10,
     db: AsyncSession = Depends(get_db),
@@ -62,7 +62,7 @@ async def get_all_users(
 
 
 @user_router.put("/{user_id}", response_model=UserInDB, status_code=status.HTTP_200_OK, dependencies=[Depends(check_password_changed)])
-async def update_user(
+async def api_update_user(
     user_id: int,
     user_update: UserUpdate,
     db: AsyncSession = Depends(get_db),
@@ -76,7 +76,7 @@ async def update_user(
 
 
 @user_router.delete("/{user_id}", status_code=status.HTTP_200_OK, dependencies=[Depends(check_password_changed)])
-async def delete_user(
+async def api_delete_user(
     user_id: int,
     db: AsyncSession = Depends(get_db),
     current_user: UserInDB=Depends(get_admin_user)
@@ -89,7 +89,7 @@ async def delete_user(
 
 
 @user_router.post("/change-password", status_code=status.HTTP_200_OK)
-async def change_password(
+async def api_change_password(
     change_request: ChangePasswordRequest,
     db: AsyncSession = Depends(get_db),
     current_user: UserInDB = Depends(get_current_active_user),
@@ -115,7 +115,7 @@ async def change_password(
 
 
 @user_router.post("/{user_id}/profile-image", response_model=UserInDB, dependencies=[Depends(check_password_changed)])
-async def upload_profile_image(
+async def api_upload_profile_image(
     user_id: int,
     profile_image: UploadFile = File(...),
     db: AsyncSession = Depends(get_db),
@@ -129,7 +129,7 @@ async def upload_profile_image(
 
 
 @user_router.get("/{user_id}/profile-image", response_class=StreamingResponse, dependencies=[Depends(check_password_changed)])
-async def get_profile_image(
+async def api_get_profile_image(
     user_id: int,
     db: AsyncSession = Depends(get_db),
     current_user: UserInDB = Depends(get_current_active_user)

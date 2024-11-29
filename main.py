@@ -5,11 +5,13 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from lifespan import lifespan
+from socket_management import sio
 from router.base import include_router
 from router.auth import auth_router
 from router.user import user_router
+from router.building import building_router
+from router.gate import gate_router
 from router.lpr import lpr_router
-from socket_management import sio
 
 # start_reactor()
 
@@ -29,6 +31,8 @@ app.add_middleware(
 
 include_router(app, auth_router)
 include_router(app, user_router)
+include_router(app, building_router)
+include_router(app, gate_router)
 include_router(app, lpr_router)
 
 @app.get("/")
