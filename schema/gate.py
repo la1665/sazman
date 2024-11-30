@@ -4,7 +4,7 @@ from datetime import datetime
 
 from models.gate import GateType
 from schema.pagination import Pagination
-from schema.camera import CameraInDB
+from schema.camera import CameraSummery
 
 
 class GateBase(BaseModel):
@@ -31,7 +31,7 @@ class GateInDB(GateBase):
     created_at: datetime
     updated_at: datetime
     is_active: bool
-    cameras: List["CameraInDB"] = []
+    cameras: List["CameraSummery"] = []
     # lprs: List["LprSummary"] = []
 
     class Config:

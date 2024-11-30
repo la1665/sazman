@@ -5,6 +5,7 @@ from auth.authorization import get_current_active_user, get_viewer_user, get_adm
 from database.engine import get_db
 from schema.user import UserInDB
 from schema.lpr import LprCreate, LprUpdate, LprInDB, LprPagination
+from schema.lpr_setting import LprSettingInstanceCreate, LprSettingInstanceUpdate, LprSettingInstanceInDB, LprSettingInstancePagination
 from crud.lpr import LprOperation
 from utils.middlewwares import check_password_changed
 
@@ -55,7 +56,7 @@ async def api_update_lpr(
     lpr_op = LprOperation(db)
     return await lpr_op.update_lpr(lpr_id, lpr)
 
-@lpr_router.delete("/{lpr_id}", response_model=LprInDB, status_code=status.HTTP_200_OK, dependencies=[Depends(check_password_changed)])
+@lpr_router.delete("/{lpr_id}", status_code=status.HTTP_200_OK, dependencies=[Depends(check_password_changed)])
 async def api_delete_lpr(
     lpr_id: int,
     db:AsyncSession=Depends(get_db),
@@ -72,3 +73,40 @@ async def api_change_activation(
 ):
     lpr_op = LprOperation(db)
     return await lpr_op.change_activation_status(lpr_id)
+
+
+@lpr_router.get("/{lpr_id}/settings", response_model=LprSettingInstancePagination, status_code=status.HTTP_200_OK, dependencies=[Depends(check_password_changed)])
+async def api_get_lpr_all_settings(lpr_id: int, page: int = 1, page_size: int = 10, db: AsyncSession = Depends(get_db), current_user: UserInDB = Depends(get_current_active_user)):
+    lpr_op = LprOperation(db)
+    return await lpr_op.get_lpr_all_settings(lpr_id, page, page_size)
+
+@lpr_router.post("/{lpr_id}/settings", response_model=LprSettingInstanceInDB, status_code=status.HTTP_201_CREATED, dependencies=[Depends(check_password_changed)])
+async def api_add_lpr_setting(
+    lpr_id: int,
+    setting_create: LprSettingInstanceCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: UserInDB = Depends(get_admin_or_staff_user),
+):
+    lpr_op = LprOperation(db)
+    return await lpr_op.add_lpr_setting(lpr_id, setting_create)
+
+@lpr_router.put("/{lpr_id}/settings/{setting_id}", response_model=LprSettingInstanceInDB, status_code=status.HTTP_200_OK, dependencies=[Depends(check_password_changed)])
+async def api_update_lpr_setting(
+    lpr_id: int,
+    setting_id: int,
+    setting_update: LprSettingInstanceUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: UserInDB = Depends(get_admin_or_staff_user),
+):
+    lpr_op = LprOperation(db)
+    return await lpr_op.update_lpr_setting(lpr_id, setting_id, setting_update)
+
+@lpr_router.delete("/{lpr_id}/settings/{setting_id}", status_code=status.HTTP_200_OK, dependencies=[Depends(check_password_changed)])
+async def api_remove_camera_setting(
+    lpr_id: int,
+    setting_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: UserInDB = Depends(get_admin_or_staff_user),
+):
+    lpr_op = LprOperation(db)
+    return await lpr_op.remove_lpr_setting(lpr_id, setting_id)

@@ -20,17 +20,9 @@ class DBLpr(Base):
     created_at = Column(DateTime, nullable=False, default=func.now())
     updated_at = Column(DateTime, nullable=False, default=func.now(), onupdate=func.now())
 
-    cameras = relationship(
-            'DBCamera',
-            secondary=camera_lpr_association,
-            back_populates='lprs',
-            lazy="selectin"
+    settings = relationship(
+            "DBLprSettingInstance",
+            back_populates="lpr",
+            lazy="selectin",
+            cascade="all, delete-orphan"
         )
-    # settings = relationship(
-    #         "DBLprSettingInstance",
-    #         back_populates="lpr",
-    #         lazy="selectin",
-    #         cascade="all, delete-orphan"
-    #     )
-    # gate_id = Column(Integer, ForeignKey('gates.id'), nullable=False)
-    # gate = relationship("DBGate", back_populates="lprs", lazy="selectin")

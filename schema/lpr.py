@@ -3,14 +3,7 @@ from datetime import datetime
 from typing import Optional, List
 
 from schema.pagination import Pagination
-
-
-class CameraSummary(BaseModel):
-    id: int
-    name: str
-
-    class Config:
-        from_attributes = True
+from schema.lpr_setting import LprSettingInstanceSummery
 
 
 class LprBase(BaseModel):
@@ -45,10 +38,7 @@ class LprInDB(LprBase):
     is_active: bool
     created_at: datetime
     updated_at: datetime
-    cameras: List[CameraSummary] = []
-
-    # gate_id: int
-    # settings: List[LprSettingInstanceInDB] = []
+    settings: List[LprSettingInstanceSummery] = []
 
     class Config:
         from_attributes = True

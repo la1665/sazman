@@ -64,8 +64,8 @@ class SimpleTCPClient(protocol.Protocol):
         """Asynchronously processes messages from the queue."""
         try:
             while True:
+                message = await self.message_queue.get()
                 try:
-                    message = await self.message_queue.get()
                     await self._process_message(message)
                 except Exception as e:
                     print(f"[ERROR] Exception in processing message: {e}")
@@ -78,7 +78,7 @@ class SimpleTCPClient(protocol.Protocol):
             # Ensure no unprocessed items are left in the queue
             while not self.message_queue.empty():
                 self.message_queue.get_nowait()
-                self.message_queue.task_done()
+                # self.message_queue.task_done()
 
     async def _process_message(self, message):
         """Processes each received message."""
@@ -178,7 +178,10 @@ class SimpleTCPClient(protocol.Protocol):
             self.factory.clientConnectionLost(self.transport.connector, reason)
         else:
             print("[ERROR] Connection lost without factory reference.")
-
+        # Cancel the message queue processing task
+        for task in asyncio.all_tasks():
+            if task.get_coro().__name__ == "process_message_queue":
+                task.cancel()
 
 from twisted.internet import reactor, ssl
 

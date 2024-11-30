@@ -1,17 +1,16 @@
 from datetime import datetime
-from pydantic import BaseModel, Field
-from typing import Optional, Generic, List, TypeVar, TYPE_CHECKING
+from pydantic import BaseModel
+from typing import Optional, List
 
 from schema.pagination import Pagination
+from schema.camera_setting import CameraSettingInstanceSummery
 
 
-class LprSummary(BaseModel):
+
+class CameraSummery(BaseModel):
     id: int
     name: str
-
-    class Config:
-        from_attributes = True
-
+    is_active: bool
 
 class CameraBase(BaseModel):
     name: str
@@ -22,7 +21,7 @@ class CameraBase(BaseModel):
 
 class CameraCreate(CameraBase):
     gate_id: int
-    lpr_ids: Optional[List[int]] = []
+    # lpr_ids: Optional[List[int]] = []
 
 
 class CameraUpdate(BaseModel):
@@ -31,7 +30,7 @@ class CameraUpdate(BaseModel):
     longitude: Optional[str] = None
     description: Optional[str] = None
     gate_id: Optional[int] = None
-    lpr_ids: Optional[List[int]] = None
+    # lpr_ids: Optional[List[int]] = None
     is_active: Optional[bool] = None
 
 
@@ -41,7 +40,7 @@ class CameraInDB(CameraBase):
     created_at: datetime
     updated_at: datetime
     gate_id: int
-    lprs: List[LprSummary] = []
+    settings: List[CameraSettingInstanceSummery] = []
 
     class Config:
         from_attributes = True
