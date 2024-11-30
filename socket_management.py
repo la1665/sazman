@@ -63,9 +63,9 @@ async def subscribe(sid, data):
     role = sid_role_map.get(sid, "admin")
     request_type = data.get("request_type")
     camera_id = data.get("camera_id")
-    if not camera_id:
-        asyncio.create_task(sio.emit('error', {'message': 'camera_id is required'}, to=sid))
-
+    if not request_type or not camera_id:
+        asyncio.create_task(sio.emit('error', {'message': 'request_type and camera_id is required'}, to=sid))
+        return
 
     asyncio.create_task(sio.emit("response", {"message": f"Handling {request_type} for {camera_id}"}, to=sid))
     # Update the request map based on the request type and role
@@ -119,11 +119,13 @@ async def emit_to_requested_sids(event_name, data, camera_id=None):
     for sid, camera_ids in request_map[event_name].items():
         if camera_id is None or camera_id in camera_ids:  # Check if the client is subscribed to the cameraID
             try:
-                asyncio.create_task(sio.emit(event_name, data, to=sid))
+                tasks.append(asyncio.create_task(sio.emit(event_name, data, to=sid)))
+                # asyncio.create_task(sio.emit(event_name, data, to=sid))
                 # tasks.append(asyncio.create_task(tcp_sio.emit(event_name, data, to=sid)))
                 logger.info(f"Emitted {event_name} to SID {sid} for camera_id {camera_id}")
             except Exception as e:
                 logger.error(f"Failed to emit {event_name} to SID {sid}: {e}")
     # Execute all emission tasks concurrently
-    await asyncio.gather(*tasks, return_exceptions=True)
+    if tasks:
+        await asyncio.gather(*tasks, return_exceptions=True)
     logger.info(f"Emitted {event_name} to all subscribed clients")

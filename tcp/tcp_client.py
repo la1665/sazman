@@ -4,10 +4,14 @@ import uuid
 import hmac
 import hashlib
 import asyncio
-from twisted.internet import protocol, defer
+from twisted.internet import protocol
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from settings import settings
+from database.engine import get_db
 from socket_management import emit_to_requested_sids
+from crud.vehicle import populate_vehicle
+from crud.traffic import populate_traffic
 
 
 class SimpleTCPClient(protocol.Protocol):
@@ -104,17 +108,32 @@ class SimpleTCPClient(protocol.Protocol):
         else:
             print(f"[INFO] Received acknowledgment for message ID: {reply_to}")
 
-    async def _broadcast_to_socketio(self, event_name, data):
+    async def _broadcast_to_socketio(self, event_name, data, camera_id):
         """Efficiently broadcast a message to all subscribed clients for an event."""
-        await emit_to_requested_sids(event_name, data)
+        await emit_to_requested_sids(event_name, data, camera_id)
 
     async def _handle_plates_data(self, message):
         # print("Plate data recived")
         message_body = message["messageBody"]
+        camera_id = message_body.get("camera_id")
+        timestamp = message_body.get("timestamp")
+        async for session in get_db():
+            vehicles = []
+
+            # Populate vehicles
+            for car in message_body.get("cars", []):
+                vehicle = await populate_vehicle(session, car)
+                vehicles.append(vehicle)
+
+            # Populate traffic
+            await populate_traffic(session, camera_id=camera_id, vehicles=vehicles, timestamp=timestamp)
+
+            # Commit the session changes
+            await session.commit()
         socketio_message = {
             "messageType": "plates_data",
-            "timestamp": message_body.get("timestamp"),
-            "camera_id": message_body.get("camera_id"),
+            "timestamp": timestamp,
+            "camera_id": camera_id,
             "full_image": message_body.get("full_image"),
             "cars": [
                 {
@@ -130,7 +149,7 @@ class SimpleTCPClient(protocol.Protocol):
             ]
         }
 
-        asyncio.ensure_future(self._broadcast_to_socketio("plates_data", socketio_message))
+        asyncio.ensure_future(self._broadcast_to_socketio("plates_data", socketio_message, camera_id))
         # await self._broadcast_to_socketio("plates_data", socketio_message)
 
     async def _handle_command_response(self, message):
@@ -141,12 +160,13 @@ class SimpleTCPClient(protocol.Protocol):
 
     async def _handle_live_data(self, message):
         message_body = message["messageBody"]
+        camera_id = message_body.get("camera_id")
         live_data = {
             "messageType": "live",
             "live_image": message_body.get("live_image"),
-            "camera_id": message_body.get("camera_id")
+            "camera_id": camera_id
         }
-        asyncio.ensure_future(self._broadcast_to_socketio("live", live_data))
+        asyncio.ensure_future(self._broadcast_to_socketio("live", live_data, camera_id))
 
     async  def _handle_unknown_message(self, message):
         print(f"[WARN] Received unknown message type: {message.get('messageType')}")
