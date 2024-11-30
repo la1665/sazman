@@ -1,9 +1,10 @@
 from pydantic import BaseModel, Field
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime
 
 from models.gate import GateType
 from schema.pagination import Pagination
+from schema.camera import CameraInDB
 
 
 class GateBase(BaseModel):
@@ -30,7 +31,7 @@ class GateInDB(GateBase):
     created_at: datetime
     updated_at: datetime
     is_active: bool
-    # cameras: List["CameraSummary"] = []
+    cameras: List["CameraInDB"] = []
     # lprs: List["LprSummary"] = []
 
     class Config:
@@ -38,3 +39,4 @@ class GateInDB(GateBase):
 
 
 GatePagination = Pagination[GateInDB]
+GateInDB.update_forward_refs()

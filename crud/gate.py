@@ -17,7 +17,7 @@ class GateOperation(CrudOperation):
     async def create_gate(self, gate:GateCreate):
         db_gate = await self.get_one_object_name(gate.name)
         if db_gate:
-            raise HTTPException(status.HTTP_400_BAD_REQUEST, "building already exists.")
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, "gate already exists.")
         db_building = await BuildingOperation(self.db_session).get_one_object_id(gate.building_id)
         try:
             new_gate = DBGate(

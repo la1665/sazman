@@ -1,18 +1,15 @@
-from sqlalchemy import Column, func, Text
+from sqlalchemy import func, Column, Text, ForeignKey
 from sqlalchemy import Boolean, Integer, String, DateTime
 from sqlalchemy.orm import relationship
 
 from database.engine import Base
 from models.association import camera_lpr_association
 
-class DBLpr(Base):
-    __tablename__ = 'lprs'
+class DBCamera(Base):
+    __tablename__ = 'cameras'
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    name = Column(String, nullable=False, index=True, unique=True)
-    ip = Column(String, nullable=False, index=True)
-    port = Column(Integer, nullable=False)
-    auth_token = Column(String, nullable=False)
+    name = Column(String, index=True, nullable=False, unique=True)
     latitude = Column(String, nullable=False)
     longitude = Column(String, nullable=False)
     description = Column(Text, nullable=True)
@@ -20,17 +17,17 @@ class DBLpr(Base):
     created_at = Column(DateTime, nullable=False, default=func.now())
     updated_at = Column(DateTime, nullable=False, default=func.now(), onupdate=func.now())
 
-    cameras = relationship(
-            'DBCamera',
-            secondary=camera_lpr_association,
-            back_populates='lprs',
-            lazy="selectin"
-        )
+    gate_id = Column(Integer, ForeignKey('gates.id'), nullable=False)
+    gate = relationship("DBGate", back_populates="cameras")
     # settings = relationship(
-    #         "DBLprSettingInstance",
-    #         back_populates="lpr",
+    #         "DBCameraSettingInstance",
+    #         back_populates="camera",
     #         lazy="selectin",
     #         cascade="all, delete-orphan"
     #     )
-    # gate_id = Column(Integer, ForeignKey('gates.id'), nullable=False)
-    # gate = relationship("DBGate", back_populates="lprs", lazy="selectin")
+    lprs = relationship(
+            'DBLpr',
+            secondary=camera_lpr_association,
+            back_populates='cameras',
+            lazy="selectin"
+        )

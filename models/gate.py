@@ -28,5 +28,5 @@ class DBGate(Base):
 
     building_id = Column(Integer, ForeignKey('buildings.id'), nullable=False)
     building = relationship('DBBuilding', back_populates='gates')
-    # cameras = relationship("DBCamera", back_populates="gate", cascade="all, delete-orphan", lazy="selectin")
+    cameras = relationship("DBCamera", back_populates="gate", cascade="all, delete-orphan", lazy="selectin")
     # lprs = relationship("DBLpr", back_populates="gate", cascade="all, delete-orphan", lazy="selectin")

@@ -54,7 +54,7 @@ class SimpleTCPClient(protocol.Protocol):
         while '<END>' in self.incomplete_data:
             full_message, self.incomplete_data = self.incomplete_data.split('<END>', 1)
             if full_message:
-                print(f"[DEBUG] Received message: {full_message[:100]}...")
+                # print(f"[DEBUG] Received message: {full_message[:100]}...")
                 # Enqueue the complete message for asynchronous processing
                 # defer.ensureDeferred(self.message_queue.put(full_message))
                 asyncio.create_task(self.message_queue.put(full_message))
@@ -109,7 +109,7 @@ class SimpleTCPClient(protocol.Protocol):
         await emit_to_requested_sids(event_name, data)
 
     async def _handle_plates_data(self, message):
-        print("Plate data recived")
+        # print("Plate data recived")
         message_body = message["messageBody"]
         socketio_message = {
             "messageType": "plates_data",

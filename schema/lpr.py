@@ -1,8 +1,17 @@
 from pydantic import BaseModel
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
 
 from schema.pagination import Pagination
+
+
+class CameraSummary(BaseModel):
+    id: int
+    name: str
+
+    class Config:
+        from_attributes = True
+
 
 class LprBase(BaseModel):
     name: str
@@ -36,9 +45,10 @@ class LprInDB(LprBase):
     is_active: bool
     created_at: datetime
     updated_at: datetime
+    cameras: List[CameraSummary] = []
+
     # gate_id: int
     # settings: List[LprSettingInstanceInDB] = []
-    # cameras: List[CameraSummary] = []
 
     class Config:
         from_attributes = True

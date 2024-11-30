@@ -11,6 +11,7 @@ from router.auth import auth_router
 from router.user import user_router
 from router.building import building_router
 from router.gate import gate_router
+from router.camera import camera_router
 from router.lpr import lpr_router
 
 # start_reactor()
@@ -33,6 +34,7 @@ include_router(app, auth_router)
 include_router(app, user_router)
 include_router(app, building_router)
 include_router(app, gate_router)
+include_router(app, camera_router)
 include_router(app, lpr_router)
 
 @app.get("/")
