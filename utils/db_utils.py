@@ -149,7 +149,7 @@ default_cameras = [
       "longitude": "1.0.1",
       "description": "دوربین اصلی گیت",
       "gate_id": 1,
-      # "lpr_ids": [],
+      "lpr_ids": [1],
     },
     {
       "name": "دوربین دوم",
@@ -157,7 +157,7 @@ default_cameras = [
       "longitude": "2.0.1",
       "description": "دوربین گیت ورود",
       "gate_id": 1,
-      # "lpr_ids": [1],
+      "lpr_ids": [1,2],
     },
     {
       "name": "دوربین سوم",
@@ -165,7 +165,7 @@ default_cameras = [
       "longitude": "3.0.1",
       "description": "دوربین گیت خروج",
       "gate_id": 2,
-      # "lpr_ids": [],
+      "lpr_ids": [3],
     },
     {
       "name": "دوربین گیت اصلی",
@@ -173,7 +173,7 @@ default_cameras = [
       "longitude": "4.0.1",
       "description": "دوربین اصلی(ورود/خروج)",
       "gate_id": 4,
-      # "lpr_ids": [],
+      "lpr_ids": [2,3,4],
     },
 ]
 
@@ -288,6 +288,7 @@ async def initialize_defaults(db: AsyncSession):
             latitude=camera["latitude"],
             longitude=camera["longitude"],
             gate_id=camera["gate_id"],
+            lpr_ids=camera["lpr_ids"],
         )
         new_camera = await camera_op.create_camera(camera_obj)
         print(f"Created camera with ID: {new_camera.id}")

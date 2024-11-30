@@ -25,3 +25,9 @@ class DBCamera(Base):
             lazy="selectin",
             cascade="all, delete-orphan"
         )
+    lprs = relationship(
+        "DBLpr",
+        secondary=camera_lpr_association,
+        back_populates="cameras",
+        lazy="selectin"
+    )

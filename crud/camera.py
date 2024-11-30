@@ -1,6 +1,7 @@
 import math
 from fastapi import HTTPException, status
 from sqlalchemy import func
+from sqlalchemy.orm import selectinload
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -10,6 +11,7 @@ from crud.base import CrudOperation
 from crud.gate import GateOperation
 from models.camera_setting import DBCameraSetting, DBCameraSettingInstance
 from models.camera import DBCamera
+from models.lpr import DBLpr
 from schema.camera import CameraUpdate, CameraCreate
 from schema.camera_setting import CameraSettingInstanceUpdate, CameraSettingInstanceCreate
 
@@ -32,6 +34,13 @@ class CameraOperation(CrudOperation):
                 description=camera.description,
                 gate_id=db_gate.id
             )
+
+            if camera.lpr_ids:
+                lpr_query = await self.db_session.execute(select(DBLpr).where(DBLpr.id.in_(camera.lpr_ids)))
+                lprs = lpr_query.unique().scalars().all()
+                if lprs:
+                    new_camera.lprs = lprs
+
             self.db_session.add(new_camera)
             await self.db_session.flush()
 
@@ -51,6 +60,8 @@ class CameraOperation(CrudOperation):
 
             await self.db_session.commit()
             await self.db_session.refresh(new_camera)
+            # query = await self.db_session.execute(select(DBCamera).options(selectinload(DBCamera.lprs)).filter(DBCamera.id == new_camera.id))
+            # result = query.unique().scalar_one()
             return new_camera
         except SQLAlchemyError as error:
             await self.db_session.rollback()
@@ -65,6 +76,15 @@ class CameraOperation(CrudOperation):
                 gate_id = update_data.pop("gate_id", None)
                 await GateOperation(self.db_session).get_one_object_id(gate_id)
                 db_camera.gate_id = gate_id
+
+            if "lpr_ids" in update_data:
+                lpr_ids = update_data.pop("lpr_ids", None)
+                if lpr_ids is not None:
+                    if lpr_ids:
+                        lprs = await self.db_session.execute(select(DBLpr).where(DBLpr.id.in_(lpr_ids)))
+                        db_camera.lprs = lprs.unique().scalars().all()
+                    else:
+                        db_camera.lprs = []
 
             for key, value in update_data.items():
                 setattr(db_camera, key, value)

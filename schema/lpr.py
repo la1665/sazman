@@ -6,6 +6,11 @@ from schema.pagination import Pagination
 from schema.lpr_setting import LprSettingInstanceSummery
 
 
+class CameraSummery(BaseModel):
+    id: int
+    name: str
+    is_active: bool
+
 class LprBase(BaseModel):
     name: str
     description: str
@@ -39,6 +44,7 @@ class LprInDB(LprBase):
     created_at: datetime
     updated_at: datetime
     settings: List[LprSettingInstanceSummery] = []
+    cameras: List[CameraSummery]
 
     class Config:
         from_attributes = True

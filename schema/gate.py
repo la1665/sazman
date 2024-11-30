@@ -4,7 +4,7 @@ from datetime import datetime
 
 from models.gate import GateType
 from schema.pagination import Pagination
-from schema.camera import CameraSummery
+from schema.lpr import CameraSummery
 
 
 class GateBase(BaseModel):
