@@ -117,19 +117,19 @@ class SimpleTCPClient(protocol.Protocol):
         message_body = message["messageBody"]
         camera_id = message_body.get("camera_id")
         timestamp = message_body.get("timestamp")
-        async for session in get_db():
-            vehicles = []
+        # async for session in get_db():
+        #     vehicles = []
 
-            # Populate vehicles
-            for car in message_body.get("cars", []):
-                vehicle = await populate_vehicle(session, car)
-                vehicles.append(vehicle)
+        #     # Populate vehicles
+        #     for car in message_body.get("cars", []):
+        #         vehicle = await populate_vehicle(session, car)
+        #         vehicles.append(vehicle)
 
-            # Populate traffic
-            await populate_traffic(session, camera_id=camera_id, vehicles=vehicles, timestamp=timestamp)
+        #     # Populate traffic
+        #     await populate_traffic(session, camera_id=camera_id, vehicles=vehicles, timestamp=timestamp)
 
             # Commit the session changes
-            await session.commit()
+            # await session.commit()
         socketio_message = {
             "messageType": "plates_data",
             "timestamp": timestamp,
