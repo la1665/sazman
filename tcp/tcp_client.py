@@ -1,3 +1,4 @@
+import logging
 import os
 import json
 import uuid
@@ -5,6 +6,8 @@ import hmac
 import hashlib
 import asyncio
 from twisted.internet import protocol
+from twisted.logger import Logger, globalLogPublisher
+from twisted.python.log import PythonLoggingObserver
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from settings import settings
@@ -13,6 +16,15 @@ from socket_management import emit_to_requested_sids
 from crud.vehicle import populate_vehicle
 from crud.traffic import populate_traffic
 
+# Set up Python logging
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
+
+# Integrate Twisted logging with Python's logging
+observer = PythonLoggingObserver()
+observer.start()
+
+twisted_logger = Logger(namespace="TwistedLogger")
 
 class SimpleTCPClient(protocol.Protocol):
     def __init__(self):

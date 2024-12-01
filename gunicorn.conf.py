@@ -7,3 +7,9 @@ worker_connections = 1000  # Maximum simultaneous clients
 timeout = 30  # Workers timeout after 30 seconds of inactivity
 graceful_timeout = 30  # Timeout for graceful shutdowns
 keepalive = 2  # Number of seconds to wait for requests on a Keep-Alive connection
+
+
+# Logging
+accesslog = "-"  # Log access to stdout
+errorlog = "-"  # Log errors to stdout
+loglevel = "debug"  # Set log level to debug
