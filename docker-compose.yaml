@@ -4,7 +4,7 @@ services:
       context: .
     container_name: fastapi_backend
     restart: on-failure
-    command: ["gunicorn", "-c", "gunicorn_dev.conf.py", "main:app_socket"]
+    command: ["gunicorn", "-c", "gunicorn.conf.py", "main:app_socket"]
     # command: [
     #   "uvicorn",
     #   "main:app_socket",
