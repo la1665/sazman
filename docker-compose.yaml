@@ -1,28 +1,28 @@
-
 services:
   backend:
     build:
       context: .
     container_name: fastapi_backend
-    restart: always
-    command: [
-      "uvicorn",
-      "main:app_socket",
-      "--host",
-      "0.0.0.0",
-      "--port",
-      "8000",
-      "--log-level",
-      "debug",
-      # "--workers",
-      # "3",
+    restart: on-failure
+    command: ["gunicorn", "-c", "gunicorn_dev.conf.py", "main:app_socket"]
+    # command: [
+    #   "uvicorn",
+    #   "main:app_socket",
+    #   "--host",
+    #   "0.0.0.0",
+    #   "--port",
+    #   "8000",
+    #   "--log-level",
+    #   "debug",
+    # "--workers",
+    # "3",
     # "--ssl-keyfile",
     # "/app/cert/client.key",
     # "--ssl-certfile",
     # "/app/cert/client.crt",
     # "--ssl-ca-certs",
     # "/app/cert/ca.crt",
-    ]
+    # ]
     ports:
       - "8000:8000"
     depends_on:
@@ -52,12 +52,12 @@ services:
   pgadmin:
     image: dpage/pgadmin4
     container_name: pgadmin
-    restart: always
+    restart: on-failure
     environment:
       PGADMIN_DEFAULT_EMAIL: "admin@admin.com"
       PGADMIN_DEFAULT_PASSWORD: "admin"
     ports:
-      - "5050:80"
+      - "127.0.0.1:5050:80"
     depends_on:
       - db
     # networks:
