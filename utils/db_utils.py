@@ -228,7 +228,7 @@ async def initialize_defaults(db: AsyncSession):
 
     camera_setting_op = CameraSettingOperation(db)
     for setting in default_camera_settings:
-        existing_setting = await camera_setting_op.get_one_object_name(setting["name"])
+        existing_setting = await camera_setting_op.get_one_object_name(setting.get("name"))
         if existing_setting is None:
             cam_setting_obj = CameraSettingCreate(
                 name=setting["name"],
@@ -242,7 +242,7 @@ async def initialize_defaults(db: AsyncSession):
 
     lpr_setting_op = LprSettingOperation(db)
     for setting in default_lpr_settings:
-        existing_setting = await lpr_setting_op.get_one_object_name(setting["name"])
+        existing_setting = await lpr_setting_op.get_one_object_name(setting.get("name"))
         if existing_setting is None:
             lpr_setting_obj = LprSettingCreate(
                 name=setting["name"],
@@ -260,8 +260,8 @@ async def initialize_defaults(db: AsyncSession):
         db_lpr = await lpr_op.get_one_object_name(lpr["name"])
         if db_lpr:
             print("lpr object already exists.")
-            print("connecting to twisted ...")
-            await add_connection(db_lpr.id, db_lpr.ip, db_lpr.port, db_lpr.auth_token)
+            # print("connecting to twisted ...")
+            # await add_connection(db_lpr.id, db_lpr.ip, db_lpr.port, db_lpr.auth_token)
             return
         else:
             lpr_obj = LprCreate(
@@ -276,11 +276,14 @@ async def initialize_defaults(db: AsyncSession):
             print(f"Created lpr with ID: {new_lpr.id}")
     print("default lprs created!!!")
 
+
     camera_op = CameraOperation(db)
     for camera in default_cameras:
         db_camera = await camera_op.get_one_object_name(camera.get("name"))
         if db_camera:
             print("camera object already exists.")
+            print("connecting to twisted ...")
+            await add_connection(db, db_camera.id)
             return
         camera_obj = CameraCreate(
             name=camera["name"],

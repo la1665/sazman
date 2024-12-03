@@ -97,8 +97,14 @@ class UserOperation(CrudOperation):
         #     delete_profile_image(old_filename)
 
         # Upload new profile image
-        image_name = upload_profile_image(file_data, user.id, profile_image.filename, profile_image.content_type)
-        user.profile_image = image_name
+        unique_filename = upload_profile_image(
+            file_data=file_data,
+            user_id=user.id,
+            username=user.username,
+            original_filename=profile_image.filename,
+            content_type=profile_image.content_type
+        )
+        user.profile_image = unique_filename
 
         try:
             # async with self.db_session as session:

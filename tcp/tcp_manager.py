@@ -1,32 +1,43 @@
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from twisted.internet import reactor
 from twisted.internet.error import ReactorNotRunning
 
 from database.engine import async_session
 from models.lpr import DBLpr
+from models.camera import DBCamera
 from tcp.tcp_client import ReconnectingTCPClientFactory
 
 # Dictionary to store active LPR connections
 connections = {}
 
-async def add_connection(lpr_id: int, server_ip: str, port: int, auth_token: str):
-    """
-    Add a new connection for the LPR.
-    """
-    if lpr_id in connections:
-        raise ValueError(f"Connection for LPR ID {lpr_id} already exists.")
-    async with async_session() as session:
-        query = await session.execute(select(DBLpr).where(DBLpr.id==lpr_id))
-        db_lpr = query.unique().scalar_one_or_none()
-        if db_lpr and db_lpr.is_active:
-            factory = ReconnectingTCPClientFactory(server_ip, port, auth_token)
-            connections[lpr_id] = factory
-
-            # Connect to the server
-            reactor.callFromThread(factory._attempt_reconnect)
-            print(f"[INFO] Added connection for LPR ID {lpr_id}")
+async def add_connection(session: AsyncSession, camera_id: int):
+        """
+        Add a new connection for the LPR.
+        """
+    # async with async_session() as session:
+        camera_query = await session.execute(select(DBCamera).where(DBCamera.id == camera_id))
+        db_camera = camera_query.unique().scalar_one_or_none()
+        if db_camera and db_camera.is_active:
+            lprs = db_camera.lprs
+            if lprs:
+                for lpr in lprs:
+                    # print(f"founded lpr in this camera: {lpr.id}, {lpr.name}, {lpr.ip}, {lpr.port}, {lpr.auth_token}")
+                    if lpr.id not in connections:
+                        factory = ReconnectingTCPClientFactory(lpr.id,  lpr.ip, lpr.port, lpr.auth_token)
+                        connections[lpr.id] = factory
+                        # Connect to the server
+                        reactor.callFromThread(factory._attempt_reconnect)
+                        print(f"[INFO] Added connection for LPR ID {lpr.id}")
+                    else:
+                        print(f"Connection for LPR ID {lpr.id} already exists.")
+            else:
+                print(f"No lpr object found for this camera: {db_camera.id}: {db_camera.name}")
         else:
-            print(f"INFO] could not create connection for LPR ID {lpr_id}, unactive lpr")
+            print(f"INFO] could not create connection for LPR ID {lpr.id}, unactive lpr")
+        print(f"all connections: {connections}")
+
+
 async def update_connection(lpr_id: int, server_ip: str, port: int, auth_token: str):
     """
     Update an existing connection with new settings.

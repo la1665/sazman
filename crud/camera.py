@@ -1,12 +1,11 @@
 import math
 from fastapi import HTTPException, status
 from sqlalchemy import func
-from sqlalchemy.orm import selectinload
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
-
+from tcp.tcp_manager import add_connection
 from crud.base import CrudOperation
 from crud.gate import GateOperation
 from models.camera_setting import DBCameraSetting, DBCameraSettingInstance
@@ -60,8 +59,10 @@ class CameraOperation(CrudOperation):
 
             await self.db_session.commit()
             await self.db_session.refresh(new_camera)
-            # query = await self.db_session.execute(select(DBCamera).options(selectinload(DBCamera.lprs)).filter(DBCamera.id == new_camera.id))
-            # result = query.unique().scalar_one()
+
+            # Add connection to Twisted
+            await add_connection(self.db_session, new_camera.id)
+
             return new_camera
         except SQLAlchemyError as error:
             await self.db_session.rollback()

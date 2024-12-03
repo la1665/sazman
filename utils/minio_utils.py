@@ -2,17 +2,18 @@ import io
 import base64
 from fastapi import HTTPException, status
 from minio import S3Error
-from datetime import datetime
+from datetime import datetime, date
 
 from database.minio_engine import minio_client
 from settings import settings
 
-def upload_profile_image(file_data: bytes, user_id: int, filename: str, content_type: str) -> str:
+
+def upload_profile_image(file_data: bytes, user_id: int, username: str, original_filename: str, content_type: str) -> str:
     """
     Uploads a profile image to MinIO and returns the URL.
     The filename will be formatted as '{user_id}-{original_filename}'.
     """
-    unique_filename = f"{user_id}-{filename}-{datetime.now()}"
+    unique_filename = generate_unique_filename(user_id, username, original_filename)
     file_length = len(file_data)
     try:
         # Upload file to MinIO
@@ -23,8 +24,6 @@ def upload_profile_image(file_data: bytes, user_id: int, filename: str, content_
             length=file_length,
             content_type=content_type  # Adjust based on file type
         )
-
-
         return unique_filename
 
     except S3Error as error:
@@ -122,3 +121,30 @@ def delete_vehicle_plate_image(filename: str) -> None:
     except S3Error as e:
         print(f"Error deleting vehicle plate image: {e}")
         raise
+
+
+
+
+def generate_unique_filename(user_id: int, username: str, original_filename: str) -> str:
+    """
+    Generate a unique filename for a user's profile image.
+
+    Args:
+        user_id (int): The user's ID.
+        username (str): The user's username, or `None` if not provided.
+        original_filename (str): The original filename uploaded by the user.
+
+    Returns:
+        str: A sanitized and unique filename.
+    """
+    # Extract the file extension from the original filename
+    file_extension = original_filename.split('.')[-1].lower()
+
+    # Use 'null' if username is None
+    sanitized_username = username or "null"
+
+    # Create a unique filename with the date and sanitized values
+    current_date = date.today().strftime("%Y-%m-%d")
+    unique_filename = f"{user_id}-{sanitized_username}-{current_date}.{file_extension}"
+
+    return unique_filename

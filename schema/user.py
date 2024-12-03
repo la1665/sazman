@@ -44,6 +44,7 @@ class UserInDB(UserBase):
     phone_number: Optional[str] = None
     office: Optional[str] = None
     profile_image: Optional[str] = None
+    profile_image_url: Optional[str] = None
     created_at: datetime
     updated_at: datetime
     is_active: bool

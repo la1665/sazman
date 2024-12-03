@@ -20,8 +20,8 @@ class LprBase(BaseModel):
     latitude: str
     longitude: str
 
+
 class LprCreate(LprBase):
-    # password: str
     pass
 
 
@@ -33,7 +33,6 @@ class LprUpdate(BaseModel):
     # auth_token: Optional[str] = None
     latitude: Optional[str] = None
     longitude: Optional[str] = None
-    # gate_id: Optional[int] = None
     is_active: Optional[bool] = None
 
 

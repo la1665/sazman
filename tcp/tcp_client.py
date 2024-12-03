@@ -6,13 +6,63 @@ import hmac
 import hashlib
 import asyncio
 from twisted.internet import protocol
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from settings import settings
-from database.engine import get_db
+from database.engine import async_session
 from socket_management import emit_to_requested_sids
 from crud.vehicle import populate_vehicle
 from crud.traffic import populate_traffic
+
+
+async def fetch_lpr_settings(lpr_id: int):
+    from sqlalchemy.future import select
+    from models.lpr import DBLpr
+
+    async with async_session() as session:
+        query = await session.execute(select(DBLpr).where(DBLpr.id == lpr_id))
+        lpr = query.scalar_one_or_none()
+        if not lpr:
+            raise ValueError(f"LPR with ID {lpr_id} not found.")
+        # Prepare data for cameras and their settings
+        cameras_data = []
+        for camera in lpr.cameras:
+            camera_data = {
+                "camera_id": camera.id,
+                "settings": []
+            }
+            for setting in camera.settings:
+                if setting.setting_type.value == "int":
+                    value = int(setting.value)
+                elif setting.setting_type.value == "float":
+                    value = float(setting.value)
+                elif setting.setting_type.value == "string":
+                    value = str(setting.value)
+                else:
+                    value = setting.value
+                setting_data = {
+                    "name": setting.name,
+                    "value": value
+                }
+                camera_data["settings"].append(setting_data)
+            cameras_data.append(camera_data)
+
+        settings_data = []
+        for setting in lpr.settings:
+            if setting.setting_type.value == "int":
+                value = int(setting.value)
+            elif setting.setting_type.value == "float":
+                value = float(setting.value)
+            elif setting.setting_type.value == "string":
+                value = str(setting.value)
+            else:
+                value = setting.value
+            setting_data = {
+                "name": setting.name,
+                "value": value
+            }
+            settings_data.append(setting_data)
+
+        return {"lpr_id": lpr.id, "settings": settings_data, "cameras_data": cameras_data}
 
 
 class SimpleTCPClient(protocol.Protocol):
@@ -106,6 +156,21 @@ class SimpleTCPClient(protocol.Protocol):
             print("[INFO] Authentication successful.")
             self.authenticated = True
             self.factory.authenticated = True
+
+            # Fetch and send LPR settings
+            try:
+                # Assuming LPR ID is passed in the factory or another way
+                lpr_settings = await fetch_lpr_settings(self.factory.lpr_id)
+                settings_message = {
+                    "messageId": self.auth_message_id,
+                    "messageType": "lpr_settings",
+                    "messageBody": lpr_settings,
+                }
+                self._send_message(json.dumps(settings_message))
+                print("[INFO] LPR settings sent to the server.")
+            except Exception as e:
+                print(f"[ERROR] Failed to send LPR settings: {e}")
+
         else:
             print(f"[INFO] Received acknowledgment for message ID: {reply_to}")
 
@@ -149,7 +214,7 @@ class SimpleTCPClient(protocol.Protocol):
                 for car in message_body.get("cars", [])
             ]
         }
-
+        print(f"sending to socket ... {socketio_message['camera_id']}")
         asyncio.ensure_future(self._broadcast_to_socketio("plates_data", socketio_message, camera_id))
         # await self._broadcast_to_socketio("plates_data", socketio_message)
 
@@ -207,7 +272,8 @@ class SimpleTCPClient(protocol.Protocol):
 from twisted.internet import reactor, ssl
 
 class ReconnectingTCPClientFactory(protocol.ReconnectingClientFactory):
-    def __init__(self, server_ip, port, auth_token):
+    def __init__(self, lpr_id, server_ip, port, auth_token):
+        self.lpr_id = lpr_id
         self.auth_token = auth_token
         self.authenticated = False
         self.active_protocol = None  # Track the active protocol instance

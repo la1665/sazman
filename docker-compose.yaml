@@ -4,14 +4,13 @@ services:
       context: .
     container_name: fastapi_backend
     restart: on-failure
-    command:
-      [
+    command: [
         "uvicorn",
         "main:app_socket",
         "--host",
         "0.0.0.0",
-        "--workers",
-        "3",
+        # "--workers",
+        # "3",
         "--log-level",
         "debug",
       ]
@@ -42,12 +41,16 @@ services:
       - .env
     volumes:
       - ./logs:/app/logs
-    # environment:
+    environment:
+      PYTHONUNBUFFERED: 1 # Ensure logs are flushed immediately
+      MINIO_URL: ${MINIO_ENDPOINT}
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
+      MINIO_BUCKET_NAME: ${MINIO_PROFILE_IMAGE_BUCKET}
     # CLIENT_KEY_PATH: ${CLIENT_KEY_PATH}
     # CLIENT_CERT_PATH: ${CLIENT_CERT_PATH}
     # CA_CERT_PATH: ${CA_CERT_PATH}
-    environment:
-      PYTHONUNBUFFERED: 1 # Ensure logs are flushed immediately
+    # environment:
 
   db:
     image: postgres:latest

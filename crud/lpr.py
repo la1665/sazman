@@ -33,6 +33,7 @@ class LprOperation(CrudOperation):
                 longitude=lpr.longitude,
                 description=lpr.description,
             )
+
             self.db_session.add(new_lpr)
             await self.db_session.flush()
 
@@ -53,9 +54,6 @@ class LprOperation(CrudOperation):
             await self.db_session.commit()
             await self.db_session.refresh(new_lpr)
 
-            # Add connection to Twisted
-            await add_connection(new_lpr.id, new_lpr.ip, new_lpr.port, new_lpr.auth_token)
-
             return new_lpr
         except SQLAlchemyError as error:
             await self.db_session.rollback()
@@ -72,7 +70,7 @@ class LprOperation(CrudOperation):
             await self.db_session.refresh(db_lpr)
 
             # Update connection in Twisted
-            await update_connection(db_lpr.id, db_lpr.ip, db_lpr.port, db_lpr.auth_token)
+            # await update_connection(db_lpr.id, db_lpr.ip, db_lpr.port, db_lpr.auth_token)
 
             return db_lpr
         except SQLAlchemyError as error:
@@ -89,7 +87,7 @@ class LprOperation(CrudOperation):
             await self.db_session.commit()
 
             # Remove connection from Twisted
-            remove_connection(lpr_id)
+            # remove_connection(lpr_id)
 
             return {"message": f"LPR {lpr_id} deleted successfully"}
         except SQLAlchemyError as error:

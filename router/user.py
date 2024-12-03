@@ -2,9 +2,11 @@ from fastapi import APIRouter, Depends, status, HTTPException, UploadFile, File
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from minio.error import S3Error
+from datetime import timedelta
 
 from settings import settings
 from database.engine import get_db
+from database.minio_engine import minio_client
 from database.minio_engine import minio_client
 from schema.user import UserCreate, UserPagination, UserUpdate, UserInDB, ChangePasswordRequest
 from crud.user import UserOperation
@@ -43,7 +45,27 @@ async def api_get_user(
     Retrieve a user by ID.
     """
     user_op = UserOperation(db)
-    return await user_op.get_one_object_id(user_id)
+    user = await user_op.get_one_object_id(user_id)
+
+    if user.profile_image:
+        try:
+            image_url = minio_client.presigned_get_object(
+                settings.MINIO_PROFILE_IMAGE_BUCKET,
+                user.profile_image,
+                expires=timedelta(seconds=3600)
+            )
+        except S3Error as error:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Failed to generate profile image url: {error}"
+            )
+    else:
+        image_url = None
+    return UserInDB(
+        **user.__dict__,
+        profile_image_url=image_url
+    )
+
 
 
 @user_router.get("/",response_model=UserPagination, status_code=status.HTTP_200_OK, dependencies=[Depends(check_password_changed)])
