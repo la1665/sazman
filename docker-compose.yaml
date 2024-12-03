@@ -11,7 +11,7 @@ services:
         "--host",
         "0.0.0.0",
         "--workers",
-        "2",
+        "1",
         "--log-level",
         "debug",
       ]
