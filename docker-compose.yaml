@@ -4,13 +4,14 @@ services:
       context: .
     container_name: fastapi_backend
     restart: on-failure
-    command: [
+    command:
+      [
         "uvicorn",
         "main:app_socket",
         "--host",
         "0.0.0.0",
-        # "--workers",
-        # "3",
+        "--workers",
+        "2",
         "--log-level",
         "debug",
       ]
