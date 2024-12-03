@@ -39,7 +39,7 @@ async def api_create_user(
 async def api_get_user(
     user_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: UserInDB=Depends(get_admin_user)
+    current_user: UserInDB=Depends(get_current_active_user)
 ):
     """
     Retrieve a user by ID.

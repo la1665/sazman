@@ -1,17 +1,21 @@
+import math
 from fastapi import HTTPException, status
+from sqlalchemy import func
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
 
 from crud.base import CrudOperation
 from crud.building import BuildingOperation
 from models.gate import DBGate
+from models.camera import DBCamera
 from schema.gate import GateUpdate, GateCreate
 
 
 
 
 class GateOperation(CrudOperation):
-    def __init__(self, db_session: AsyncSession, de_table=DBGate) -> None:
+    def __init__(self, db_session: AsyncSession, db_table=DBGate) -> None:
         super().__init__(db_session, DBGate)
 
     async def create_gate(self, gate:GateCreate):
@@ -57,3 +61,29 @@ class GateOperation(CrudOperation):
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"{error}: Failed to update gate."
             )
+
+
+
+    async def get_gate_all_cameras(self, gate_id: int, page: int=1, page_size: int=10):
+            total_query = await self.db_session.execute(select(func.count(DBCamera.id)).where(DBCamera.gate_id == gate_id))
+            total_records = total_query.scalar_one()
+
+            # Calculate total number of pages
+            total_pages = math.ceil(total_records / page_size) if page_size else 1
+
+            # Calculate offset
+            offset = (page - 1) * page_size
+
+            # Fetch the records
+            query = await self.db_session.execute(
+                select(DBCamera).where(DBCamera.gate_id == gate_id).offset(offset).limit(page_size)
+            )
+            objects = query.unique().scalars().all()
+
+            return {
+                "items": objects,
+                "total_records": total_records,
+                "total_pages": total_pages,
+                "current_page": page,
+                "page_size": page_size,
+            }

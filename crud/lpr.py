@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from settings import settings
 from crud.base import CrudOperation
 from models.lpr_setting import DBLprSetting, DBLprSettingInstance
+from models.camera import DBCamera
 from models.lpr import DBLpr
 from schema.lpr import LprUpdate, LprCreate
 from schema.lpr_setting import LprSettingInstanceCreate, LprSettingInstanceUpdate
@@ -95,6 +96,38 @@ class LprOperation(CrudOperation):
             raise HTTPException(status.HTTP_400_BAD_REQUEST, f"{error}: Failed to delete LPR.")
 
 
+
+    async def get_lpr_all_cameras(self, lpr_id: int, page: int=1, page_size: int=10):
+        total_query = await self.db_session.execute(
+            select(func.count(DBCamera.id))
+            .join(DBCamera.lprs)  # Join the lprs relationship
+            .where(DBLpr.id == lpr_id)  # Filter by the specific lpr_id
+        )
+        total_records = total_query.scalar_one()
+
+        # Calculate total number of pages
+        total_pages = math.ceil(total_records / page_size) if page_size else 1
+
+        # Calculate offset
+        offset = (page - 1) * page_size
+
+        # Fetch the records
+        query = await self.db_session.execute(
+                select(DBCamera)
+                .join(DBCamera.lprs)
+                .where(DBLpr.id == lpr_id)  # Filter by the specific lpr_id
+                .offset(offset)
+                .limit(page_size)
+            )
+        objects = query.unique().scalars().all()
+
+        return {
+            "items": objects,
+            "total_records": total_records,
+            "total_pages": total_pages,
+            "current_page": page,
+            "page_size": page_size,
+        }
 
     async def get_lpr_all_settings(self, lpr_id: int, page: int=1, page_size: int=10):
         total_query = await self.db_session.execute(select(func.count(DBLprSettingInstance.id)).where(DBLprSettingInstance.lpr_id == lpr_id))

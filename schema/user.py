@@ -45,6 +45,7 @@ class UserInDB(UserBase):
     office: Optional[str] = None
     profile_image: Optional[str] = None
     profile_image_url: Optional[str] = None
+    password_changed: Optional[bool] = None
     created_at: datetime
     updated_at: datetime
     is_active: bool

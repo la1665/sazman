@@ -4,6 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from auth.authorization import get_current_active_user, get_viewer_user, get_admin_user, get_admin_or_staff_user
 from database.engine import get_db
 from schema.user import UserInDB
+from schema.camera import CameraPagination
 from schema.lpr import LprCreate, LprUpdate, LprInDB, LprPagination
 from schema.lpr_setting import LprSettingInstanceCreate, LprSettingInstanceUpdate, LprSettingInstanceInDB, LprSettingInstancePagination
 from crud.lpr import LprOperation
@@ -45,6 +46,13 @@ async def api_get_lpr(
 ):
     lpr_op = LprOperation(db)
     return await lpr_op.get_one_object_id(lpr_id)
+
+
+@lpr_router.get("/{lpr_id}/cameras", response_model=CameraPagination, status_code=status.HTTP_200_OK, dependencies=[Depends(check_password_changed)])
+async def api_get_lpr_all_cameras(lpr_id: int, page: int = 1, page_size: int = 10, db: AsyncSession = Depends(get_db), current_user: UserInDB = Depends(get_current_active_user)):
+    lpr_op = LprOperation(db)
+    return await lpr_op.get_lpr_all_cameras(lpr_id, page, page_size)
+
 
 @lpr_router.put("/{lpr_id}", response_model=LprInDB, status_code=status.HTTP_200_OK, dependencies=[Depends(check_password_changed)])
 async def api_update_lpr(
