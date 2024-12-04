@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from auth.authorization import get_current_active_user, get_viewer_user, get_admin_user, get_admin_or_staff_user
+from auth.authorization import get_current_active_user, get_admin_user, get_admin_or_staff_user
 from database.engine import get_db
 from schema.user import UserInDB
 from schema.camera import CameraCreate, CameraUpdate, CameraInDB, CameraPagination

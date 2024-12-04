@@ -20,15 +20,16 @@ class DBLpr(Base):
     created_at = Column(DateTime, nullable=False, default=func.now())
     updated_at = Column(DateTime, nullable=False, default=func.now(), onupdate=func.now())
 
+    cameras = relationship("DBCamera", back_populates="lpr", cascade="all, delete-orphan", lazy="selectin")
     settings = relationship(
             "DBLprSettingInstance",
             back_populates="lpr",
             lazy="selectin",
             cascade="all, delete-orphan"
         )
-    cameras = relationship(
-        "DBCamera",
-        secondary=camera_lpr_association,
-        back_populates="lprs",
-        lazy="selectin"
-    )
+    # cameras = relationship(
+    #     "DBCamera",
+    #     secondary=camera_lpr_association,
+    #     back_populates="lprs",
+    #     lazy="selectin"
+    # )

@@ -8,6 +8,7 @@ from sqlalchemy.future import select
 from tcp.tcp_manager import add_connection
 from crud.base import CrudOperation
 from crud.gate import GateOperation
+from crud.lpr import LprOperation
 from models.camera_setting import DBCameraSetting, DBCameraSettingInstance
 from models.camera import DBCamera
 from models.lpr import DBLpr
@@ -25,20 +26,16 @@ class CameraOperation(CrudOperation):
         if db_camera:
             raise HTTPException(status.HTTP_400_BAD_REQUEST, "camera already exists.")
         db_gate = await GateOperation(self.db_session).get_one_object_id(camera.gate_id)
+        db_lpr = await LprOperation(self.db_session).get_one_object_id(camera.lpr_id)
         try:
             new_camera = DBCamera(
                 name=camera.name,
                 latitude=camera.latitude,
                 longitude=camera.longitude,
                 description=camera.description,
-                gate_id=db_gate.id
+                gate_id=db_gate.id,
+                lpr_id=db_lpr.id
             )
-
-            if camera.lpr_ids:
-                lpr_query = await self.db_session.execute(select(DBLpr).where(DBLpr.id.in_(camera.lpr_ids)))
-                lprs = lpr_query.unique().scalars().all()
-                if lprs:
-                    new_camera.lprs = lprs
 
             self.db_session.add(new_camera)
             await self.db_session.flush()
@@ -78,14 +75,10 @@ class CameraOperation(CrudOperation):
                 await GateOperation(self.db_session).get_one_object_id(gate_id)
                 db_camera.gate_id = gate_id
 
-            if "lpr_ids" in update_data:
-                lpr_ids = update_data.pop("lpr_ids", None)
-                if lpr_ids is not None:
-                    if lpr_ids:
-                        lprs = await self.db_session.execute(select(DBLpr).where(DBLpr.id.in_(lpr_ids)))
-                        db_camera.lprs = lprs.unique().scalars().all()
-                    else:
-                        db_camera.lprs = []
+            if "lpr_id" in update_data:
+                lpr_id = update_data.pop("lpr_id", None)
+                await LprOperation(self.db_session).get_one_object_id(lpr_id)
+                db_camera.lpr_id = lpr_id
 
             for key, value in update_data.items():
                 setattr(db_camera, key, value)

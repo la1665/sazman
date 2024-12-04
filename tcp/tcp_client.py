@@ -214,7 +214,7 @@ class SimpleTCPClient(protocol.Protocol):
                 for car in message_body.get("cars", [])
             ]
         }
-        print(f"sending to socket ... {socketio_message['camera_id']}")
+        # print(f"sending to socket ... {socketio_message['camera_id']}")
         asyncio.ensure_future(self._broadcast_to_socketio("plates_data", socketio_message, camera_id))
         # await self._broadcast_to_socketio("plates_data", socketio_message)
 
@@ -232,6 +232,8 @@ class SimpleTCPClient(protocol.Protocol):
             "live_image": message_body.get("live_image"),
             "camera_id": camera_id
         }
+
+        print(f"sending live to socket ... {live_data['camera_id']}")
         asyncio.ensure_future(self._broadcast_to_socketio("live", live_data, camera_id))
 
     async  def _handle_unknown_message(self, message):
@@ -246,7 +248,7 @@ class SimpleTCPClient(protocol.Protocol):
 
     def _create_command_message(self, command_data):
         """Creates and signs a command message with HMAC for integrity."""
-        hmac_key = os.getenv("HMAC_SECRET_KEY", "").encode()
+        hmac_key = settings.HMAC_SECRET_KEY.encode()
         data_str = json.dumps(command_data,separators=(',', ':'), sort_keys=True)
         hmac_signature = hmac.new(hmac_key, data_str.encode(), hashlib.sha256).hexdigest()
         return json.dumps({
@@ -356,12 +358,12 @@ class ReconnectingTCPClientFactory(protocol.ReconnectingClientFactory):
 
 
 
-# def send_command_to_server(factory, command_data):
-#     if factory.authenticated and factory.active_protocol:
-#         print(f"[INFO] Sending command to server: {command_data}")
-#         factory.active_protocol.send_command(command_data)
-#     else:
-#         print("[ERROR] Cannot send command: Client is not authenticated or connected.")
+def send_command_to_server(factory, command_data):
+    if factory.authenticated and factory.active_protocol:
+        print(f"[INFO] Sending command to server: {command_data}")
+        factory.active_protocol.send_command(command_data)
+    else:
+        print("[ERROR] Cannot send command: Client is not authenticated or connected.")
 
 # def graceful_shutdown(signal, frame):
 #     print("Shutting down gracefully...")

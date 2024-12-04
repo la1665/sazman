@@ -98,11 +98,7 @@ class LprOperation(CrudOperation):
 
 
     async def get_lpr_all_cameras(self, lpr_id: int, page: int=1, page_size: int=10):
-        total_query = await self.db_session.execute(
-            select(func.count(DBCamera.id))
-            .join(DBCamera.lprs)  # Join the lprs relationship
-            .where(DBLpr.id == lpr_id)  # Filter by the specific lpr_id
-        )
+        total_query = await self.db_session.execute(select(func.count(DBCamera.id)).where(DBCamera.lpr_id == lpr_id))
         total_records = total_query.scalar_one()
 
         # Calculate total number of pages
@@ -113,12 +109,8 @@ class LprOperation(CrudOperation):
 
         # Fetch the records
         query = await self.db_session.execute(
-                select(DBCamera)
-                .join(DBCamera.lprs)
-                .where(DBLpr.id == lpr_id)  # Filter by the specific lpr_id
-                .offset(offset)
-                .limit(page_size)
-            )
+            select(DBCamera).where(DBCamera.lpr_id == lpr_id).offset(offset).limit(page_size)
+        )
         objects = query.unique().scalars().all()
 
         return {

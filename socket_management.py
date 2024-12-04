@@ -1,17 +1,24 @@
+import time
 import socketio
 import logging
 import asyncio
-from typing import Dict, List
+from sqlalchemy.future import select
+from sqlalchemy.orm import selectinload
+
+
+from database.engine import async_session
+from models.camera import DBCamera
+from shared_resources import connections
 
 logger = logging.getLogger(__name__)
 
 
 # Create a new instance of an ASGI-compatible Socket.IO server
-ALLOW_ORIGINS=[
-        "https://fastapi-8vlc6b.chbk.app",
-        "https://services.irn8.chabokan.net",
-        "https://91.236.169.133"
-    ],
+# ALLOW_ORIGINS=[
+#         "https://fastapi-8vlc6b.chbk.app",
+#         "https://services.irn8.chabokan.net",
+#         "https://91.236.169.133"
+#     ],
 sio = socketio.AsyncServer(
     async_mode='asgi',  # Use ASGI mode for FastAPI compatibility
     cors_allowed_origins="*",  # Allow all origins for CORS; adjust as needed
@@ -59,6 +66,7 @@ async def subscribe(sid, data):
     """
     Allows clients to subscribe to specific events.
     """
+    global connections
     print(f"Received request from {sid}: {data}")
     role = sid_role_map.get(sid, "admin")
     request_type = data.get("request_type")
@@ -71,6 +79,25 @@ async def subscribe(sid, data):
     # Update the request map based on the request type and role
     if request_type == "live":
         request_map["live"].setdefault(sid, set()).add(camera_id)
+        command_data = {
+            "commandType": "streaming",
+            "cameraId": camera_id,
+            "duration": data.get("duration"),
+        }
+        async with async_session() as session:
+            query = await session.execute(select(DBCamera).where(DBCamera.id == int(camera_id)).options(selectinload(DBCamera.lpr)))
+            db_camera = query.scalar_one_or_none()
+            if not db_camera:
+                asyncio.create_task(sio.emit('error', {'message': 'camera not found'}, to=sid))
+            lpr = db_camera.lpr
+            if lpr:
+                factory = connections[lpr.id]
+                if factory.authenticated and factory.active_protocol:
+                    print(f"[INFO] Sending command to server: {command_data}")
+                    factory.active_protocol.send_command(command_data)
+                else:
+                    print("[ERROR] Cannot send command: Client is not authenticated or connected.")
+
         logger.info(f"Client {sid} subscribed to live data for camera_id {camera_id}")
         asyncio.create_task(sio.emit('request_acknowledged', {"status": "subscribed", "data_type": "live", "camera_id": camera_id}, to=sid))
 

@@ -19,15 +19,17 @@ class DBCamera(Base):
 
     gate_id = Column(Integer, ForeignKey('gates.id'), nullable=False)
     gate = relationship("DBGate", back_populates="cameras")
+    lpr_id = Column(Integer, ForeignKey("lprs.id"), nullable=False)
+    lpr = relationship("DBLpr", back_populates="cameras")
     settings = relationship(
             "DBCameraSettingInstance",
             back_populates="camera",
             lazy="selectin",
             cascade="all, delete-orphan"
         )
-    lprs = relationship(
-        "DBLpr",
-        secondary=camera_lpr_association,
-        back_populates="cameras",
-        lazy="selectin"
-    )
+    # lprs = relationship(
+    #     "DBLpr",
+    #     secondary=camera_lpr_association,
+    #     back_populates="cameras",
+    #     lazy="selectin"
+    # )

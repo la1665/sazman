@@ -40,22 +40,15 @@ async def get_current_user(
 
 async def get_current_active_user(current_user: UserInDB = Depends(get_current_user)):
     if not current_user.is_active:
-        raise HTTPException(status.HTTP_403_FORBIDDEN, {"Permission denied":"Inactive user."}
+        raise HTTPException(status.HTTP_403_FORBIDDEN, {"Permission denied":"Inactive user"}
         )
-    return current_user
-
-
-async def get_viewer_user(current_user: UserInDB = Depends(get_current_active_user)):
-    if current_user.user_type not in [UserType.ADMIN, UserType.STAFF, UserType.VIEWER]:
-        raise HTTPException(status.HTTP_403_FORBIDDEN,
-            {"Permission denied":"Not accessible for this user type."})
     return current_user
 
 
 async def get_admin_user(current_user: UserInDB = Depends(get_current_active_user)):
     if current_user.user_type is not UserType.ADMIN:
         raise HTTPException(status.HTTP_403_FORBIDDEN,
-            {"Permission denied":"Not accessible for this user type."})
+            {"Permission denied":"Admin access required"})
     return current_user
 
 
@@ -63,6 +56,64 @@ async def get_admin_or_staff_user(current_user: DBUser = Depends(get_current_act
     if current_user.user_type not in [UserType.ADMIN, UserType.STAFF]:
         raise HTTPException(
             status.HTTP_403_FORBIDDEN,
-            {"Permission denied":"Not accessible for this user type."}
+            {"Permission denied":"Admin or staff access required"}
         )
     return current_user
+
+
+async def get_admin_staff_viewer_user(current_user: UserInDB = Depends(get_current_active_user)):
+    if current_user.user_type not in [UserType.ADMIN, UserType.STAFF, UserType.VIEWER]:
+        raise HTTPException(status.HTTP_403_FORBIDDEN,
+            {"Permission denied":"Not accessible for this user type"})
+    return current_user
+
+
+async def get_self_or_admin_user(
+    user_id: int,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    if current_user.user_type == UserType.ADMIN or current_user.id == user_id:
+        return current_user
+    raise HTTPException(
+        status.HTTP_403_FORBIDDEN,
+        {"Permission denied":"Access denied"}
+    )
+
+async def get_self_or_admin_or_staff_user(
+    user_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: UserInDB = Depends(get_current_active_user),
+):
+    user_op = UserOperation(db)
+    target_user = await user_op.get_one_object_id(user_id)
+
+    if current_user.user_type == UserType.ADMIN:
+        # Admin has access to update any user
+        return target_user
+
+    if current_user.id == user_id:
+        # Users can update their own profile
+        return target_user
+
+    if current_user.user_type == UserType.STAFF:
+        # Staff can update users with 'viewer' or 'user' types
+        if target_user.user_type in [UserType.VIEWER, UserType.USER]:
+            return target_user
+
+    # If none of the conditions are met, deny access
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="Permission denied: You cannot update this user.",
+    )
+
+
+async def get_self_user_only(
+    user_id: int,
+    current_user: UserInDB = Depends(get_current_active_user)
+):
+    if current_user.id == user_id:
+        return current_user
+    raise HTTPException(
+        status.HTTP_403_FORBIDDEN,
+        {"permission denied":"Access denied: You can only access your own data."}
+    )

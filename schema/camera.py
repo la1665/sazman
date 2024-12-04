@@ -21,7 +21,7 @@ class CameraBase(BaseModel):
 
 class CameraCreate(CameraBase):
     gate_id: int
-    lpr_ids: Optional[List[int]] = []
+    lpr_id: Optional[int] = None
 
 
 class CameraUpdate(BaseModel):
@@ -30,7 +30,7 @@ class CameraUpdate(BaseModel):
     longitude: Optional[str] = None
     description: Optional[str] = None
     gate_id: Optional[int] = None
-    lpr_ids: Optional[List[int]] = None
+    lpr_id: Optional[int] = None
     is_active: Optional[bool] = None
 
 
@@ -41,7 +41,7 @@ class CameraInDB(CameraBase):
     updated_at: datetime
     gate_id: int
     settings: List[CameraSettingInstanceSummery] = []
-    lprs: List[LprSummery]
+    lpr_id: Optional[int] = None
 
     class Config:
         from_attributes = True
