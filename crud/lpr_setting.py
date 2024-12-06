@@ -10,7 +10,7 @@ from schema.lpr_setting import LprSettingCreate, LprSettingUpdate
 
 
 class LprSettingOperation(CrudOperation):
-    def __init__(self, db_session: AsyncSession, de_table=DBLprSetting) -> None:
+    def __init__(self, db_session: AsyncSession) -> None:
         super().__init__(db_session, DBLprSetting)
 
 

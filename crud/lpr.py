@@ -16,7 +16,7 @@ from tcp.tcp_manager import add_connection, update_connection, remove_connection
 
 
 class LprOperation(CrudOperation):
-    def __init__(self, db_session: AsyncSession, de_table=DBLpr) -> None:
+    def __init__(self, db_session: AsyncSession) -> None:
         super().__init__(db_session, DBLpr)
 
     async def create_lpr(self, lpr:LprCreate):

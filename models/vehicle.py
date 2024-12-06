@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Integer, Float, Text, Boolean, ForeignKey, DateTime, func
+from sqlalchemy import Column, String, Integer, Boolean, ForeignKey, DateTime, func
 from sqlalchemy.orm import relationship
 
 from database.engine import Base
@@ -18,8 +18,8 @@ class DBVehicle(Base):
     )
     owner_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     owner = relationship("DBUser", back_populates="vehicles")
-    traffic_events = relationship(
-        "DBTraffic",
-        secondary="traffic_vehicle_association",
-        back_populates="vehicles"
-    )
+    # traffic_events = relationship(
+    #     "DBTraffic",
+    #     secondary="traffic_vehicle_association",
+    #     back_populates="vehicles"
+    # )

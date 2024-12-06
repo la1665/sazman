@@ -13,7 +13,7 @@ from utils.minio_utils import upload_profile_image
 
 
 class UserOperation(CrudOperation):
-    def __init__(self, db_session: AsyncSession, de_table=DBUser) -> None:
+    def __init__(self, db_session: AsyncSession) -> None:
         super().__init__(db_session, DBUser)
 
     async def get_user_username(self, username: str):

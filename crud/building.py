@@ -14,7 +14,7 @@ from schema.building import BuildingUpdate, BuildingCreate
 
 
 class BuildingOperation(CrudOperation):
-    def __init__(self, db_session: AsyncSession, de_table=DBBuilding) -> None:
+    def __init__(self, db_session: AsyncSession) -> None:
         super().__init__(db_session, DBBuilding)
 
     async def create_building(self, building:BuildingCreate):

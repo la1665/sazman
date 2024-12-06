@@ -3,6 +3,7 @@ from datetime import datetime
 from typing import Optional
 
 from models.user import UserType
+from schema.vehicle import VehicleInDB, VehiclePagination
 from schema.pagination import Pagination
 
 class UserBase(BaseModel):
@@ -46,6 +47,7 @@ class UserInDB(UserBase):
     profile_image: Optional[str] = None
     profile_image_url: Optional[str] = None
     password_changed: Optional[bool] = None
+    vehicles: Optional[VehicleInDB] = None
     created_at: datetime
     updated_at: datetime
     is_active: bool

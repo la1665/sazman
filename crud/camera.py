@@ -11,14 +11,13 @@ from crud.gate import GateOperation
 from crud.lpr import LprOperation
 from models.camera_setting import DBCameraSetting, DBCameraSettingInstance
 from models.camera import DBCamera
-from models.lpr import DBLpr
 from schema.camera import CameraUpdate, CameraCreate
 from schema.camera_setting import CameraSettingInstanceUpdate, CameraSettingInstanceCreate
 
 
 
 class CameraOperation(CrudOperation):
-    def __init__(self, db_session: AsyncSession, de_table=DBCamera) -> None:
+    def __init__(self, db_session: AsyncSession) -> None:
         super().__init__(db_session, DBCamera)
 
     async def create_camera(self, camera: CameraCreate):

@@ -1,5 +1,3 @@
-import logging
-import os
 import json
 import uuid
 import hmac
@@ -10,8 +8,6 @@ from twisted.internet import protocol
 from settings import settings
 from database.engine import async_session
 from socket_management import emit_to_requested_sids
-from crud.vehicle import populate_vehicle
-from crud.traffic import populate_traffic
 
 
 async def fetch_lpr_settings(lpr_id: int):
@@ -183,19 +179,6 @@ class SimpleTCPClient(protocol.Protocol):
         message_body = message["messageBody"]
         camera_id = message_body.get("camera_id")
         timestamp = message_body.get("timestamp")
-        # async for session in get_db():
-        #     vehicles = []
-
-        #     # Populate vehicles
-        #     for car in message_body.get("cars", []):
-        #         vehicle = await populate_vehicle(session, car)
-        #         vehicles.append(vehicle)
-
-        #     # Populate traffic
-        #     await populate_traffic(session, camera_id=camera_id, vehicles=vehicles, timestamp=timestamp)
-
-            # Commit the session changes
-            # await session.commit()
         socketio_message = {
             "messageType": "plates_data",
             "timestamp": timestamp,
@@ -216,7 +199,7 @@ class SimpleTCPClient(protocol.Protocol):
         }
         # print(f"sending to socket ... {socketio_message['camera_id']}")
         asyncio.ensure_future(self._broadcast_to_socketio("plates_data", socketio_message, camera_id))
-        # await self._broadcast_to_socketio("plates_data", socketio_message)
+
 
     async def _handle_command_response(self, message):
         """

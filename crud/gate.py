@@ -15,7 +15,7 @@ from schema.gate import GateUpdate, GateCreate
 
 
 class GateOperation(CrudOperation):
-    def __init__(self, db_session: AsyncSession, db_table=DBGate) -> None:
+    def __init__(self, db_session: AsyncSession) -> None:
         super().__init__(db_session, DBGate)
 
     async def create_gate(self, gate:GateCreate):
