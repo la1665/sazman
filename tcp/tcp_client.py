@@ -157,10 +157,17 @@ class SimpleTCPClient(protocol.Protocol):
             try:
                 # Assuming LPR ID is passed in the factory or another way
                 lpr_settings = await fetch_lpr_settings(self.factory.lpr_id)
+                hmac_key = settings.HMAC_SECRET_KEY.encode()
+                data_str = json.dumps(lpr_settings, separators=(',', ':'), sort_keys=True)
+                hmac_signature = hmac.new(hmac_key, data_str.encode(), hashlib.sha256).hexdigest()
                 settings_message = {
                     "messageId": self.auth_message_id,
                     "messageType": "lpr_settings",
-                    "messageBody": lpr_settings,
+                    "messageBody":
+                        {
+                            "data": lpr_settings,
+                            "hmac": hmac_signature
+                        }
                 }
                 self._send_message(json.dumps(settings_message))
                 print("[INFO] LPR settings sent to the server.")
@@ -232,7 +239,7 @@ class SimpleTCPClient(protocol.Protocol):
     def _create_command_message(self, command_data):
         """Creates and signs a command message with HMAC for integrity."""
         hmac_key = settings.HMAC_SECRET_KEY.encode()
-        data_str = json.dumps(command_data,separators=(',', ':'), sort_keys=True)
+        data_str = json.dumps(command_data, separators=(',', ':'), sort_keys=True)
         hmac_signature = hmac.new(hmac_key, data_str.encode(), hashlib.sha256).hexdigest()
         return json.dumps({
             "messageId": str(uuid.uuid4()),
