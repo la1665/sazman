@@ -80,6 +80,7 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./init-scripts:/docker-entrypoint-initdb.d
     # command: >
     #   sh -c "psql -U ${POSTGRES_USER} -tc 'SELECT 1 FROM pg_database WHERE datname = \"${POSTGRES_DB}\"' |
     #   grep -q 1 || psql -U ${POSTGRES_USER} -c 'CREATE DATABASE ${POSTGRES_DB}'"
