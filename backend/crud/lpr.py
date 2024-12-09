@@ -55,10 +55,13 @@ class LprOperation(CrudOperation):
             await self.db_session.commit()
             await self.db_session.refresh(new_lpr)
 
+
             return new_lpr
         except SQLAlchemyError as error:
             await self.db_session.rollback()
             raise HTTPException(status.HTTP_400_BAD_REQUEST, f"{error}: Failed to create lpr.")
+        finally:
+            await self.db_session.close()
 
 
     async def update_lpr(self, lpr_id: int, lpr_update: LprUpdate):
@@ -71,7 +74,7 @@ class LprOperation(CrudOperation):
             await self.db_session.refresh(db_lpr)
 
             # Update connection in Twisted
-            # await update_connection(db_lpr.id, db_lpr.ip, db_lpr.port, db_lpr.auth_token)
+            await update_connection(db_lpr.id, db_lpr.ip, db_lpr.port, db_lpr.auth_token)
 
             return db_lpr
         except SQLAlchemyError as error:
@@ -80,6 +83,8 @@ class LprOperation(CrudOperation):
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"{error}: Failed to update lpr."
             )
+        finally:
+            await self.db_session.close()
 
     async def delete_lpr(self, lpr_id: int):
         db_lpr = await self.get_one_object_id(lpr_id)
@@ -94,6 +99,8 @@ class LprOperation(CrudOperation):
         except SQLAlchemyError as error:
             await self.db_session.rollback()
             raise HTTPException(status.HTTP_400_BAD_REQUEST, f"{error}: Failed to delete LPR.")
+        finally:
+            await self.db_session.close()
 
 
 
@@ -182,6 +189,8 @@ class LprOperation(CrudOperation):
             raise HTTPException(
                 status.HTTP_409_CONFLICT, f"{error}: Could not add lpr setting"
             )
+        finally:
+            await self.db_session.close()
 
 
     async def update_lpr_setting(self, lpr_id: int, setting_id: int, setting_update: LprSettingInstanceUpdate):
@@ -210,6 +219,8 @@ class LprOperation(CrudOperation):
             raise HTTPException(
                 status.HTTP_409_CONFLICT, f"{error}: Could not update lpr setting"
             )
+        finally:
+            await self.db_session.close()
 
     async def remove_lpr_setting(self, lpr_id: int, setting_id: int):
         query = await self.db_session.execute(
@@ -234,3 +245,5 @@ class LprOperation(CrudOperation):
             raise HTTPException(
                 status.HTTP_409_CONFLICT, f"{error}: Could not remove lpr setting"
             )
+        finally:
+            await self.db_session.close()

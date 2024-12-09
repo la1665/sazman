@@ -57,12 +57,14 @@ class CameraOperation(CrudOperation):
             await self.db_session.refresh(new_camera)
 
             # Add connection to Twisted
-            await add_connection(self.db_session, new_camera.id)
+            await add_connection(self.db_session, camera_id=new_camera.id, lpr_id=None)
 
             return new_camera
         except SQLAlchemyError as error:
             await self.db_session.rollback()
             raise HTTPException(status.HTTP_400_BAD_REQUEST, f"{error}: Failed to create camera.")
+        finally:
+            await self.db_session.close()
 
 
     async def update_camera(self, camera_id: int, camera_update: CameraUpdate):
@@ -92,6 +94,8 @@ class CameraOperation(CrudOperation):
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"{error}: Failed to update camera."
             )
+        finally:
+            await self.db_session.close()
 
     async def get_camera_all_settings(self, camera_id: int, page: int=1, page_size: int=10):
         total_query = await self.db_session.execute(select(func.count(DBCameraSettingInstance.id)).where(DBCameraSettingInstance.camera_id == camera_id))
@@ -154,6 +158,8 @@ class CameraOperation(CrudOperation):
             raise HTTPException(
                 status.HTTP_409_CONFLICT, f"{error}: Could not add camera setting"
             )
+        finally:
+            await self.db_session.close()
 
 
     async def update_camera_setting(self, camera_id: int, setting_id: int, setting_update: CameraSettingInstanceUpdate):
@@ -182,6 +188,8 @@ class CameraOperation(CrudOperation):
             raise HTTPException(
                 status.HTTP_409_CONFLICT, f"{error}: Could not update camera setting"
             )
+        finally:
+            await self.db_session.close()
 
     async def remove_camera_setting(self, camera_id: int, setting_id: int):
         query = await self.db_session.execute(
@@ -206,3 +214,5 @@ class CameraOperation(CrudOperation):
             raise HTTPException(
                 status.HTTP_409_CONFLICT, f"{error}: Could not remove camera setting"
             )
+        finally:
+            await self.db_session.close()

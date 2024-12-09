@@ -78,18 +78,6 @@ default_gates = [
       "building_id": 1
     },
     {
-      "name": "گیت ورودی",
-      "description": "گیت ورودی شعبه مرکزی",
-      "gate_type": 0,
-      "building_id": 1
-    },
-    {
-      "name": "گیت خروجی",
-      "description": "گیت خروجی سازمان مرکزی",
-      "gate_type": 1,
-      "building_id": 1
-    },
-    {
       "name": "گیت ورودی/خروجی شعبه",
       "description": "گیت اصلی شعبه آمل",
       "gate_type": 2,
@@ -181,7 +169,7 @@ default_lprs = [
     {
       "name": "ماژول پلاک خوان۱",
       "description": "پلاک خوان دوربین گیت۱ برای ورودی/خروجی",
-      "ip": "185.81.99.23",
+      "ip": "127.0.0.1",
       "port": 45,
       "latitude": "98.0.0",
       "longitude": "98.0.0",
@@ -238,22 +226,22 @@ default_cameras = [
       "gate_id": 1,
       "lpr_id": 1,
     },
-    # {
-    #   "name": "دوربین سوم",
-    #   "latitude": "3.0.1",
-    #   "longitude": "3.0.1",
-    #   "description": "دوربین گیت خروج",
-    #   "gate_id": 2,
-    #   "lpr_id": 2,
-    # },
-    # {
-    #   "name": "دوربین گیت اصلی",
-    #   "latitude": "4.0.1",
-    #   "longitude": "4.0.1",
-    #   "description": "دوربین اصلی(ورود/خروج)",
-    #   "gate_id": 4,
-    #   "lpr_id": 4,
-    # },
+    {
+      "name": "دوربین سوم",
+      "latitude": "3.0.1",
+      "longitude": "3.0.1",
+      "description": "دوربین گیت خروج",
+      "gate_id": 1,
+      "lpr_id": 1,
+    },
+    {
+      "name": "دوربین گیت اصلی",
+      "latitude": "4.0.1",
+      "longitude": "4.0.1",
+      "description": "دوربین اصلی(ورود/خروج)",
+      "gate_id": 1,
+      "lpr_id": 1,
+    },
 ]
 
 
@@ -377,7 +365,7 @@ async def initialize_defaults(db: AsyncSession):
         if db_camera:
             print("camera object already exists.")
             print("connecting to twisted ...")
-            await add_connection(db, db_camera.id)
+            await add_connection(db, camera_id=db_camera.id, lpr_id=None)
             return
         camera_obj = CameraCreate(
             name=camera["name"],

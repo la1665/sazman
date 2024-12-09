@@ -36,6 +36,8 @@ class BuildingOperation(CrudOperation):
         except SQLAlchemyError as error:
             await self.db_session.rollback()
             raise HTTPException(status.HTTP_400_BAD_REQUEST, f"{error}: Failed to create building.")
+        finally:
+            await self.db_session.close()
 
 
     async def update_building(self, building_id: int, building_update: BuildingUpdate):
@@ -53,6 +55,8 @@ class BuildingOperation(CrudOperation):
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"{error}: Failed to update building."
             )
+        finally:
+            await self.db_session.close()
 
     async def get_building_all_gates(self, building_id: int, page: int=1, page_size: int=10):
         total_query = await self.db_session.execute(select(func.count(DBGate.id)).where(DBGate.building_id == building_id))

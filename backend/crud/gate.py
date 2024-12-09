@@ -37,6 +37,8 @@ class GateOperation(CrudOperation):
         except SQLAlchemyError as error:
             await self.db_session.rollback()
             raise HTTPException(status.HTTP_400_BAD_REQUEST, f"{error}: Failed to create gate.")
+        finally:
+            await self.db_session.close()
 
 
     async def update_gate(self, gate_id: int, gate_update: GateUpdate):
@@ -61,29 +63,31 @@ class GateOperation(CrudOperation):
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"{error}: Failed to update gate."
             )
+        finally:
+            await self.db_session.close()
 
 
 
     async def get_gate_all_cameras(self, gate_id: int, page: int=1, page_size: int=10):
-            total_query = await self.db_session.execute(select(func.count(DBCamera.id)).where(DBCamera.gate_id == gate_id))
-            total_records = total_query.scalar_one()
+        total_query = await self.db_session.execute(select(func.count(DBCamera.id)).where(DBCamera.gate_id == gate_id))
+        total_records = total_query.scalar_one()
 
-            # Calculate total number of pages
-            total_pages = math.ceil(total_records / page_size) if page_size else 1
+        # Calculate total number of pages
+        total_pages = math.ceil(total_records / page_size) if page_size else 1
 
-            # Calculate offset
-            offset = (page - 1) * page_size
+        # Calculate offset
+        offset = (page - 1) * page_size
 
-            # Fetch the records
-            query = await self.db_session.execute(
-                select(DBCamera).where(DBCamera.gate_id == gate_id).offset(offset).limit(page_size)
-            )
-            objects = query.unique().scalars().all()
+        # Fetch the records
+        query = await self.db_session.execute(
+            select(DBCamera).where(DBCamera.gate_id == gate_id).offset(offset).limit(page_size)
+        )
+        objects = query.unique().scalars().all()
 
-            return {
-                "items": objects,
-                "total_records": total_records,
-                "total_pages": total_pages,
-                "current_page": page,
-                "page_size": page_size,
-            }
+        return {
+            "items": objects,
+            "total_records": total_records,
+            "total_pages": total_pages,
+            "current_page": page,
+            "page_size": page_size,
+        }

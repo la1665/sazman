@@ -1,13 +1,20 @@
+import os
 import json
 import uuid
 import hmac
 import hashlib
 import asyncio
+from pathlib import Path
 from twisted.internet import protocol
+from twisted.protocols import basic
+from sqlalchemy.exc import SQLAlchemyError
+
 
 from settings import settings
 from database.engine import async_session
 from socket_management import emit_to_requested_sids
+from crud.traffic import TrafficOperation
+from schema.traffic import TrafficCreate
 
 
 async def fetch_lpr_settings(lpr_id: int):
@@ -61,12 +68,18 @@ async def fetch_lpr_settings(lpr_id: int):
         return {"lpr_id": lpr.id, "settings": settings_data, "cameras_data": cameras_data}
 
 
-class SimpleTCPClient(protocol.Protocol):
+class SimpleTCPClient(basic.LineReceiver):
+    delimiter = b'SSENDSS'  # Use <END> as the delimiter
+    maxLength = 500 * 1024 * 1024
     def __init__(self):
         self.auth_message_id = None
         self.incomplete_data = ""
         self.authenticated = False  # Track authentication status locally
         self.message_queue = asyncio.Queue()
+        self.lock = asyncio.Lock()
+
+        self.buffer = b""
+        self.expected_length = None
 
     def connectionMade(self):
         """Called when a connection to the server is made."""
@@ -74,7 +87,6 @@ class SimpleTCPClient(protocol.Protocol):
         self.authenticate()
         # Start processing the message queue
         asyncio.create_task(self.process_message_queue())
-        # defer.ensureDeferred(self.process_message_queue())
 
     def authenticate(self):
         """Sends an authentication message with a secure token."""
@@ -99,37 +111,50 @@ class SimpleTCPClient(protocol.Protocol):
         else:
             print("[ERROR] Transport is not connected. Message not sent.")
 
+    def is_valid_utf8(self, data):
+        try:
+            data.decode('utf-8')
+            return True
+        except UnicodeDecodeError:
+            return False
+
     def dataReceived(self, data):
         """Accumulates and processes data received from the server."""
-        self.incomplete_data += data.decode('utf-8')
-        while '<END>' in self.incomplete_data:
-            full_message, self.incomplete_data = self.incomplete_data.split('<END>', 1)
-            if full_message:
-                # print(f"[DEBUG] Received message: {full_message[:100]}...")
-                # Enqueue the complete message for asynchronous processing
-                # defer.ensureDeferred(self.message_queue.put(full_message))
-                asyncio.create_task(self.message_queue.put(full_message))
+        try:
+            # Append the new data to the buffer
+            self.incomplete_data += data.decode('utf-8')
+
+            # Process all complete messages in the buffer
+            while '<END>' in self.incomplete_data:
+                full_message, self.incomplete_data = self.incomplete_data.split('<END>', 1)
+                full_message = full_message.strip()  # Remove extra spaces or newlines (if any)
+
+                if full_message:
+                    # Enqueue the complete message for asynchronous processing
+                    asyncio.create_task(self.message_queue.put(full_message))
+        except UnicodeDecodeError as e:
+            print(f"[ERROR] Failed to decode data: {e}")
 
 
     async def process_message_queue(self):
         """Asynchronously processes messages from the queue."""
         try:
             while True:
-                message = await self.message_queue.get()
                 try:
+                    message = await self.message_queue.get()
                     await self._process_message(message)
                 except Exception as e:
                     print(f"[ERROR] Exception in processing message: {e}")
                 finally:
-                    # if not self.message_queue.empty():
-                    self.message_queue.task_done()
-                    # self.message_queue.task_done()
+                    if not self.message_queue.empty():
+                        self.message_queue.task_done()
         except asyncio.CancelledError:
             print("[INFO] Message processing task cancelled. Cleaning up...")
+
             # Ensure no unprocessed items are left in the queue
             while not self.message_queue.empty():
                 self.message_queue.get_nowait()
-                # self.message_queue.task_done()
+                self.message_queue.task_done()
 
     async def _process_message(self, message):
         """Processes each received message."""
@@ -140,7 +165,10 @@ class SimpleTCPClient(protocol.Protocol):
                 "acknowledge": self._handle_acknowledgment,
                 "command_response": self._handle_command_response,
                 "plates_data": self._handle_plates_data,
-                "live": self._handle_live_data
+                "live": self._handle_live_data,
+                "heartbeat": self._handle_heartbeat,
+                "resources": self._handle_resources,
+                "camera_connection": self._handle_camera_connection
             }.get(message_type, self._handle_unknown_message)
             await handler(parsed_message)
         except json.JSONDecodeError as e:
@@ -186,6 +214,52 @@ class SimpleTCPClient(protocol.Protocol):
         message_body = message["messageBody"]
         camera_id = message_body.get("camera_id")
         timestamp = message_body.get("timestamp")
+
+
+        try:
+            async with async_session() as session:
+                traffic_operation = TrafficOperation(session)
+
+                # Retrieve the camera object to validate and find the associated gate
+                # camera_query = await session.execute(
+                #     select(DBCamera).where(DBCamera.id == camera_id)
+                # )
+                # db_camera = camera_query.scalar_one_or_none()
+
+                # if not db_camera or not db_camera.gate_id:
+                #     print(f"[ERROR] Camera with ID {camera_id} not found or has no associated gate.")
+                #     return  # Handle missing camera or gate appropriately
+
+                # gate_id = db_camera.gate_id
+
+                # Process each car in the received message
+            try:
+                for car in message_body.get("cars", []):
+                    plate_number = car.get("plate", {}).get("plate", "Unknown")
+                    ocr_accuracy = car.get("ocr_accuracy", "Unknown")
+                    vision_speed = car.get("vision_speed", 0.0)
+                    # Create a TrafficCreate object for the car
+                    traffic_data = TrafficCreate(
+                        plate_number=plate_number,
+                        ocr_accuracy=ocr_accuracy,
+                        vision_speed=vision_speed,
+                        timestamp=timestamp,
+                        camera_id=camera_id
+                    )
+
+                    # Use the TrafficOperation to store the traffic data
+                    traffic_entry = await traffic_operation.create_traffic(traffic_data)
+                    print(f"[INFO] Stored traffic data: {traffic_entry.id} for plate {plate_number}")
+
+            except SQLAlchemyError as e:
+                print(f"[ERROR] Database error while storing traffic data: {e}")
+                await session.rollback()
+            finally:
+                await session.close()
+
+        except Exception as e:
+            print(f"[ERROR] Unexpected error: {e}")
+
         socketio_message = {
             "messageType": "plates_data",
             "timestamp": timestamp,
@@ -250,16 +324,25 @@ class SimpleTCPClient(protocol.Protocol):
             }
         })
 
+    async def _handle_resources(self, message):
+        print(f"[INFO] Resources received: {message['messageBody']}")
+        cpu_usage = message["messageBody"].get("CPU_USAGE")
+        ram_usage = message["messageBody"].get("RAM_USAGE")
+        free_space_percentage = message["messageBody"].get("Free_Space_Percentage")
+        # Process resource data here (e.g., log it or trigger some actions)
+
+    async def _handle_camera_connection(self, message):
+        print(f"[INFO] Camera connection status: {message['messageBody']}")
+        is_connected = message["messageBody"].get("Connection")
+        # Process camera connection status here (e.g., log or update UI)
+
+
     def connectionLost(self, reason):
         print(f"[INFO] Connection lost: {reason}")
-        if self.factory:
-            self.factory.clientConnectionLost(self.transport.connector, reason)
-        else:
-            print("[ERROR] Connection lost without factory reference.")
-        # Cancel the message queue processing task
-        for task in asyncio.all_tasks():
-            if task.get_coro().__name__ == "process_message_queue":
-                task.cancel()
+        self.factory.clientConnectionLost(self.transport.connector, reason)
+
+    async def _handle_heartbeat(self, message):
+        print(message)
 
 from twisted.internet import reactor, ssl
 
@@ -314,9 +397,41 @@ class ReconnectingTCPClientFactory(protocol.ReconnectingClientFactory):
         class ClientContextFactory(ssl.ClientContextFactory):
             def getContext(self):
                 context = ssl.SSL.Context(ssl.SSL.TLSv1_2_METHOD)
-                context.use_certificate_file(settings.CLIENT_CERT_PATH)
-                context.use_privatekey_file(settings.CLIENT_KEY_PATH)
-                context.load_verify_locations(settings.CA_CERT_PATH)
+                # Resolve absolute paths for the certificates
+                client_key_path = Path(settings.CLIENT_KEY_PATH).resolve()
+                client_cert_path = Path(settings.CLIENT_CERT_PATH).resolve()
+                ca_cert_path = Path(settings.CA_CERT_PATH).resolve()
+
+                # Log paths for debugging
+                print(f"Using client key: {client_key_path}")
+                print(f"Using client cert: {client_cert_path}")
+                print(f"Using CA cert: {ca_cert_path}")
+
+                # Use the certificates in the SSL context
+                context.use_certificate_file(str(client_cert_path))
+                context.use_privatekey_file(str(client_key_path))
+                context.load_verify_locations(str(ca_cert_path))
+
+
+                # client_key_path = os.path.abspath(settings.CLIENT_KEY_PATH)
+                # client_cert_path = os.path.abspath(settings.CLIENT_CERT_PATH)
+                # ca_cert_path = os.path.abspath(settings.CA_CERT_PATH)
+
+                # Verify the paths
+                # print(f"Using client key: {client_key_path}")
+                # print(f"Using client cert: {client_cert_path}")
+                # print(f"Using CA cert: {ca_cert_path}")
+                # Use the certificates in the context
+                # context.use_certificate_file(client_cert_path)
+                # context.use_privatekey_file(client_key_path)
+                # context.load_verify_locations(ca_cert_path)
+                # context.use_certificate_file("client.crt")
+                # context.use_privatekey_file("client.key")
+                # context.load_verify_locations("ca.crt")
+
+                # context.use_certificate_file(settings.CLIENT_CERT_PATH)
+                # context.use_privatekey_file(settings.CLIENT_KEY_PATH)
+                # context.load_verify_locations(settings.CA_CERT_PATH)
                 context.set_verify(ssl.SSL.VERIFY_PEER, lambda conn, cert, errno, depth, ok: ok)
                 return context
 

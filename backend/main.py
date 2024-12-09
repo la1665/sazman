@@ -2,6 +2,7 @@ from tcp import reactor_setup
 import uvicorn
 import socketio
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 
 from lifespan import lifespan
@@ -31,7 +32,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
+# Serve the profile images as static files
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 include_router(app, auth_router)
 include_router(app, user_router)
 include_router(app, building_router)

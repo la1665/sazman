@@ -1,3 +1,5 @@
+import os
+from pathlib import Path
 from fastapi import HTTPException, UploadFile, status
 from sqlalchemy import or_
 from sqlalchemy.exc import SQLAlchemyError
@@ -9,8 +11,12 @@ from crud.base import CrudOperation
 from models.user import DBUser, UserType
 from schema.user import UserUpdate, UserCreate
 from validator import profile_image_validator
-from utils.minio_utils import upload_profile_image
+# from utils.minio_utils import upload_profile_image
 
+BASE_UPLOAD_DIR = Path("uploads/profile_images")  # Base directory for storing images
+
+# Ensure the directory exists
+BASE_UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 class UserOperation(CrudOperation):
     def __init__(self, db_session: AsyncSession) -> None:
@@ -46,6 +52,8 @@ class UserOperation(CrudOperation):
         except SQLAlchemyError as error:
             await self.db_session.rollback()
             raise HTTPException(status.HTTP_400_BAD_REQUEST, f"{error}: Failed to create user.")
+        finally:
+            await self.db_session.close()
 
 
     async def update_user(self, user_id: int, user_update: UserUpdate):
@@ -63,6 +71,8 @@ class UserOperation(CrudOperation):
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"{error}: Failed to update user."
             )
+        finally:
+            await self.db_session.close()
 
 
     async def delete_user(self, user_id: int):
@@ -77,44 +87,87 @@ class UserOperation(CrudOperation):
         except SQLAlchemyError as error:
             await self.db_session.rollback()
             raise HTTPException(status.HTTP_400_BAD_REQUEST, f"{error}: Could not delete user")
+        finally:
+            await self.db_session.close()
 
 
 
-    async def upload_profile_image(self, user_id: int, profile_image: UploadFile):
+    # async def upload_profile_image(self, user_id: int, profile_image: UploadFile):
 
+    #     user = await self.get_one_object_id(user_id)
+    #     # Validate the image
+    #     profile_image_validator.validate_image_extension(profile_image.filename)
+    #     profile_image_validator.validate_image_content_type(profile_image.content_type)
+    #     profile_image_validator.validate_image_size(profile_image)
+
+    #     # Read the file data
+    #     file_data = await profile_image.read()
+
+    #     # Delete old profile image if exists
+    #     # if user.profile_image:
+    #     #     old_filename = user.profile_image.split("/")[-1].split("?")[0]
+    #     #     delete_profile_image(old_filename)
+
+    #     # Upload new profile image
+    #     unique_filename = upload_profile_image(
+    #         file_data=file_data,
+    #         user_id=user.id,
+    #         username=user.username,
+    #         original_filename=profile_image.filename,
+    #         content_type=profile_image.content_type
+    #     )
+    #     user.profile_image = unique_filename
+
+    #     try:
+    #         # async with self.db_session as session:
+    #             self.db_session.add(user)
+    #             await self.db_session.commit()
+    #             await self.db_session.refresh(user)
+    #             return user
+    #     except SQLAlchemyError as error:
+    #         await self.db_session.rollback()
+    #         raise HTTPException(
+    #             status_code=status.HTTP_400_BAD_REQUEST,
+    #             detail=f"{error}: Failed to upload profile image."
+    #         )
+
+    async def upload_user_profile_image(self, user_id: int, profile_image: UploadFile):
         user = await self.get_one_object_id(user_id)
+
         # Validate the image
         profile_image_validator.validate_image_extension(profile_image.filename)
         profile_image_validator.validate_image_content_type(profile_image.content_type)
         profile_image_validator.validate_image_size(profile_image)
 
-        # Read the file data
-        file_data = await profile_image.read()
+        # Generate a unique filename
+        unique_filename = f"{user.username}_{user.id}_{profile_image.filename}"
+        file_path = BASE_UPLOAD_DIR / unique_filename
 
-        # Delete old profile image if exists
-        # if user.profile_image:
-        #     old_filename = user.profile_image.split("/")[-1].split("?")[0]
-        #     delete_profile_image(old_filename)
-
-        # Upload new profile image
-        unique_filename = upload_profile_image(
-            file_data=file_data,
-            user_id=user.id,
-            username=user.username,
-            original_filename=profile_image.filename,
-            content_type=profile_image.content_type
-        )
-        user.profile_image = unique_filename
-
+        # Save the file locally
         try:
-            # async with self.db_session as session:
-                self.db_session.add(user)
-                await self.db_session.commit()
-                await self.db_session.refresh(user)
-                return user
+            with open(file_path, "wb") as f:
+                file_data = await profile_image.read()
+                f.write(file_data)
+
+            # Update the user's profile image path
+            user.profile_image = str(file_path)
+            user.profile_image_url = str(file_path)
+            # Save changes to the database
+            self.db_session.add(user)
+            await self.db_session.commit()
+            await self.db_session.refresh(user)
+            return user
+
         except SQLAlchemyError as error:
             await self.db_session.rollback()
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"{error}: Failed to upload profile image."
             )
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Failed to save the profile image locally: {e}"
+            )
+        finally:
+            await self.db_session.close()

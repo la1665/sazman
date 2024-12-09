@@ -31,4 +31,9 @@ class VehicleInDB(VehicleBase):
         from_attributes = True
 
 
+class VehicleSummary(BaseModel):
+    id: int
+    plate_number: str
+
+
 VehiclePagination = Pagination[VehicleInDB]

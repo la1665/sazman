@@ -85,3 +85,5 @@ class CrudOperation:
         except SQLAlchemyError as error:
             await self.db_session.rollback()
             raise HTTPException(status.HTTP_400_BAD_REQUEST, f"{error}: Could not delete object")
+        finally:
+            await self.db_session.close()

@@ -11,10 +11,11 @@ from schema.user import UserInDB
 
 class TrafficBase(BaseModel):
     plate_number: str
-    camera_id: int
-    ocr_accuracy: str
-    vision_speed: str
+    ocr_accuracy: float
+    vision_speed: float
     timestamp: datetime
+    camera_id: int
+    # gate_id: int
 
 
 class TrafficCreate(TrafficBase):
@@ -27,11 +28,10 @@ class TrafficUpdate(BaseModel):
 
 class TrafficInDB(TrafficBase):
     id: int
-    owner_username: Optional[str] = None
-    owner_first_name: Optional[str] = None
-    owner_last_name: Optional[str] = None
-    building_name: Optional[str] = None
-    gate_name: Optional[str] = None
+    gate_id: int
+    # owner_username: Optional[str] = None
+    # owner_first_name: Optional[str] = None
+    # owner_last_name: Optional[str] = None
 
     class Config:
         from_attributes = True

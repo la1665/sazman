@@ -9,6 +9,7 @@ from schema.lpr import LprCreate, LprUpdate, LprInDB, LprPagination
 from schema.lpr_setting import LprSettingInstanceCreate, LprSettingInstanceUpdate, LprSettingInstanceInDB, LprSettingInstancePagination
 from crud.lpr import LprOperation
 from utils.middlewwares import check_password_changed
+from tcp.tcp_manager import add_connection
 
 # Create an APIRouter for user-related routes
 lpr_router = APIRouter(
@@ -26,7 +27,9 @@ async def api_create_lpr(
     current_user:UserInDB=Depends(get_admin_or_staff_user)
 ):
     lpr_op = LprOperation(db)
-    return await lpr_op.create_lpr(lpr)
+    new_lpr = await lpr_op.create_lpr(lpr)
+    await add_connection(db, camera_id=None, lpr_id=new_lpr.id)
+    return new_lpr
 
 @lpr_router.get("/", response_model=LprPagination, status_code=status.HTTP_200_OK, dependencies=[Depends(check_password_changed)])
 async def api_get_all_lprs(

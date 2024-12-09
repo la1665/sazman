@@ -22,14 +22,14 @@ class Settings(BaseSettings):
     MINIO_PROFILE_IMAGE_BUCKET: Optional[str] = None
     MINIO_FULL_IMAGE_BUCKET: Optional[str] = None
     MINIO_PLATE_IMAGE_BUCKET: Optional[str] = None
-    CLIENT_KEY_PATH: Optional[str] = None
-    CLIENT_CERT_PATH: Optional[str] = None
-    CA_CERT_PATH: Optional[str] = None
+    CLIENT_KEY_PATH: str
+    CLIENT_CERT_PATH: str
+    CA_CERT_PATH: str
     LPR_AUTH_TOKEN: str
 
 
     class Config:
-        env_file = ".env"
+        env_file = "./backend/.env"
 
 
 settings = Settings()

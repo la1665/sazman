@@ -33,6 +33,8 @@ class LprSettingOperation(CrudOperation):
         except SQLAlchemyError as error:
             await self.db_session.rollback()
             raise HTTPException(status.HTTP_409_CONFLICT, f"{error}: Could not create lpr-setting")
+        finally:
+            await self.db_session.close()
 
     async def update_setting(self, setting_id: int, lpr_setting: LprSettingUpdate):
         db_lpr_setting = await self.get_one_object_id(setting_id)
@@ -47,3 +49,5 @@ class LprSettingOperation(CrudOperation):
         except SQLAlchemyError as error:
             await self.db_session.rollback()
             raise HTTPException(status.HTTP_409_CONFLICT, f"{error}: Could not update lpr-setting")
+        finally:
+            await self.db_session.close()

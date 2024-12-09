@@ -34,4 +34,4 @@ class DBUser(Base):
     updated_at = Column(
         DateTime, nullable=False, default=func.now(), onupdate=func.now()
     )
-    vehicles = relationship("DBVehicle", back_populates="owner")
+    vehicles = relationship("DBVehicle", back_populates="owner", lazy="selectin")
