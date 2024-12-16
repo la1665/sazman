@@ -80,7 +80,6 @@ class CrudOperation:
         try:
             await self.db_session.delete(db_object)
             await self.db_session.commit()
-            await self.db_session.refresh(db_object)
             return db_object
             # return {"message": f"object {db_object.name} deleted successfully"}
         except SQLAlchemyError as error:
